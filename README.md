@@ -26,15 +26,6 @@ The app integrates a **backend in Azure (FastAPI + Python)**, a **PostgreSQL/Pos
 
 ---
 
-
-## 🔑 Main Endpoints (Backend API - example)
-- `GET /predict` → Returns bird species probabilities by location/time.  
-- `GET /heatmap` → Returns a grid-based heatmap of probable species in a polygon.  
-- `GET /optimal_route` → Suggests a walking route optimized for birdwatching.  
-- `POST /sightings` → Register a user’s bird sighting.  
-
----
-
 ## ⚙️ Running the Backend (Local)
 
 ### Clone repository
