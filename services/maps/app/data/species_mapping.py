@@ -20,5 +20,12 @@ species_mapping = {
     "2488424.0": "Ramphocelus dimidiatus",
     "2484217.0": "Psarocolius decumanus",
     "2481930.0": "Cathartes aura",
-    "2478771.0": "Ramphastos sulfuratus"
+    "2478771.0": "Ramphastos sulfuratus",
+    "9105847.0": "Saltator olivascens",
+    "2495858.0": "Columbina talpacoti",
+    "9752617.0": "Ardea alba",
+    "2484159.0":"Quiscalus lugubris",
+    "5229939.0":"Icterus nigrogularis",
+    "5229446.0": "Ortalis garrula",
+    "2479127.0": "Eupsittula pertinax"
 }

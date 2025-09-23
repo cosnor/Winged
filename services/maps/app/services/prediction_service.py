@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from shapely.geometry import Point
+from scipy.interpolate import griddata
+from shapely.geometry import Point, Polygon
 from datetime import datetime
 
 # Importa lo que guardaste en predictor.py
@@ -63,4 +64,166 @@ def predict_species(lat: float, lon: float, timestamp: datetime):
         "location": {"lat": lat, "lon": lon},
         "datetime": timestamp.isoformat(),
         "species_probabilities": results
+    }
+    
+def predict_distribution(lat: float, lon: float, timestamp: datetime,
+                         radius: float = 1000, grid_size: float = 0.002,
+                         levels=(0.1, 0.3, 0.5, 0.7)):
+    """
+    Genera superficies suavizadas de distribución de especies usando interpolación.
+    """
+
+    # Paso 1: generar puntos alrededor
+    delta = radius / 111000.0  # conversión m → grados (aprox)
+    lats = np.arange(lat - delta, lat + delta, grid_size)
+    lons = np.arange(lon - delta, lon + delta, grid_size)
+
+    coords = []
+    Zs = {}
+
+    for la in lats:
+        for lo in lons:
+            punto = predict_species(la, lo, timestamp)
+            for sp in punto["species_probabilities"]:
+                species = sp["species"]
+                prob = sp["probability"]
+                if species not in Zs:
+                    Zs[species] = []
+                Zs[species].append((lo, la, prob))  # cuidado: shapely usa X=lon, Y=lat
+            coords.append((lo, la))
+
+    # Paso 2: grilla uniforme para interpolación
+    grid_x, grid_y = np.meshgrid(
+        np.linspace(min(lons), max(lons), 50),
+        np.linspace(min(lats), max(lats), 50)
+    )
+
+    species_distributions = []
+
+    for species, points in Zs.items():
+        # Convertir a arrays
+        xs = [p[0] for p in points]
+        ys = [p[1] for p in points]
+        zs = [p[2] for p in points]
+
+        # Paso 3: interpolar con 'linear'
+        grid_z = griddata((xs, ys), zs, (grid_x, grid_y), method="linear", fill_value=0)
+
+        # Paso 4: extraer polígonos por niveles de probabilidad
+        areas = []
+        for level in levels:
+            mask = grid_z >= level
+            if not mask.any():
+                continue
+
+            # Extraer contorno aproximado
+            indices = np.argwhere(mask)
+            if len(indices) < 3:
+                continue
+
+            coords_poly = []
+            for idx in indices:
+                y_idx, x_idx = idx
+                coords_poly.append({
+                    "lat": float(grid_y[y_idx, x_idx]),
+                    "lon": float(grid_x[y_idx, x_idx])
+                })
+
+            try:
+                poly = Polygon([(c["lon"], c["lat"]) for c in coords_poly]).convex_hull
+                areas.append({
+                    "polygon": [{"lat": y, "lon": x} for x, y in poly.exterior.coords],
+                    "probability": level
+                })
+            except Exception:
+                pass
+
+        if areas:
+            max_prob = float(np.max(zs))
+            species_distributions.append({
+                "species": species,
+                "max_probability": max_prob,
+                "areas": areas
+            })
+
+    return {
+        "zone": "Distribución local",
+        "location": {"lat": lat, "lon": lon},
+        "datetime": timestamp.isoformat(),
+        "species_distributions": species_distributions
+    }
+
+def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, grid_size: float = 0.001):
+    """
+    Predice distribución de especies dentro de la zona poligonal detectada.
+    """
+    p = Point(lon, lat)
+
+    # Identificar la zona
+    zona_row = next(
+        ((row["name"], row.geometry) for _, row in zonas.iterrows() if row.geometry.contains(p)),
+        None
+    )
+
+    if not zona_row:
+        return {
+            "zone": "Fuera de zonas",
+            "location": {"lat": lat, "lon": lon},
+            "datetime": timestamp.isoformat(),
+            "species_distributions": []
+        }
+
+    zona_name, zona_geom = zona_row
+    minx, miny, maxx, maxy = zona_geom.bounds  
+
+    lats = np.arange(miny, maxy, grid_size)
+    lons = np.arange(minx, maxx, grid_size)
+
+    results = []
+
+    for la in lats:
+        for lo in lons:
+            pt = Point(lo, la)
+            if zona_geom.contains(pt):  
+                pred = predict_species(la, lo, timestamp)
+                results.append(pred)
+
+    # Construir species_distributions
+    species_distributions = []
+    if results:
+        species_list = [r["species"] for r in results[0]["species_probabilities"]]
+
+        for species in species_list:
+            areas = []
+            max_prob = 0
+
+            for r in results:
+                sp = next(s for s in r["species_probabilities"] if s["species"] == species)
+                prob = sp["probability"]
+
+                if prob > 0.1:  # pintar solo si relevante
+                    lat_c, lon_c = r["location"]["lat"], r["location"]["lon"]
+                    cell = [
+                        {"lat": lat_c - grid_size / 2, "lon": lon_c - grid_size / 2},
+                        {"lat": lat_c - grid_size / 2, "lon": lon_c + grid_size / 2},
+                        {"lat": lat_c + grid_size / 2, "lon": lon_c + grid_size / 2},
+                        {"lat": lat_c + grid_size / 2, "lon": lon_c - grid_size / 2}
+                    ]
+                    areas.append({"polygon": cell, "probability": prob})
+
+                    if prob > max_prob:
+                        max_prob = prob
+
+            if areas:
+                species_distributions.append({
+                    "species": species,
+                    "max_probability": max_prob,
+                    "areas": areas
+                })
+
+    return {
+        "zone": zona_name,
+        "location": {"lat": lat, "lon": lon},
+        "datetime": timestamp.isoformat(),
+        "species_distributions": species_distributions
     }

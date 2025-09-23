@@ -1,6 +1,7 @@
 from fastapi import APIRouter
-from app.models.schemas import PredictionRequest, PredictionResponse
-from app.services.prediction_service import predict_species
+from datetime import datetime
+from app.models.schemas import PredictionRequest, PredictionResponse, DistributionRequest, DistributionZoneRequest
+from app.services.prediction_service import predict_species, predict_distribution, predict_distribution_in_zone
 
 router = APIRouter()
 
@@ -22,3 +23,24 @@ def get_zones():
     import geopandas as gpd
     zonas = gpd.read_file("services/maps/app/data/barriosbaq.geojson").to_crs(epsg=4326)
     return zonas.__geo_interface__
+
+@router.post("/distribution")
+def distribution(request: DistributionRequest):
+    dt = datetime.fromisoformat(request.datetime.replace("Z", "+00:00"))
+    return predict_distribution(
+        lat=request.lat,
+        lon=request.lon,
+        timestamp=dt,
+        radius=request.radius,
+        grid_size=request.grid_size
+    )
+    
+@router.post("/distribution-zone")
+def distribution_zone(request: DistributionZoneRequest):
+    dt = datetime.fromisoformat(request.datetime.replace("Z", "+00:00"))
+    return predict_distribution_in_zone(
+        lat=request.lat,
+        lon=request.lon,
+        timestamp=dt,
+        grid_size=request.grid_size
+    )
