@@ -102,6 +102,26 @@ services:
     depends_on:
       - db
 
+  mobile:
+    build: ./mobile
+    container_name: mobile_app
+    ports:
+      - "8081:8081"    # Puerto para la app web
+      - "19000:19000"  # Puerto para Metro Bundler
+      - "19001:19001"  # Puerto para Expo DevTools
+      - "19002:19002"  # Puerto para Tunnel
+    volumes:
+      - ./mobile:/app:Z
+      - /app/node_modules  # Volumen anónimo para node_modules
+    environment:
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+      - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
+      - API_BASE_URL=http://backend:8000
+    depends_on:
+      - backend
+    stdin_open: true
+    tty: true
+
   db:
     image: postgis/postgis:16-3.4
     container_name: postgres_db

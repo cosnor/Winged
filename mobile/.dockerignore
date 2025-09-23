@@ -1,0 +1,9 @@
+node_modules
+npm-debug.log
+.expo
+.expo-shared
+dist
+.next
+.git
+.DS_Store
+*.log

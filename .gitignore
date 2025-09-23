@@ -139,3 +139,10 @@ dist
 
 backend/venv/
 backend/app/__pycache__
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+
