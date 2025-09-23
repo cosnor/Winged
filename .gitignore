@@ -138,4 +138,7 @@ dist
 #venv
 
 backend/venv/
-backend/app/__pycache__
+__pycache__
+
+
+

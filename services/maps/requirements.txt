@@ -1,2 +1,8 @@
 fastapi
 uvicorn[standard]
+pandas
+numpy
+joblib
+geopandas
+shapely
+scikit-learn
