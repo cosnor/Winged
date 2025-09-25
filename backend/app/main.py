@@ -1,10 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+import httpx
 
 app = FastAPI(title="Winged BFF", version="0.1.0")
 
+# Configuración de microservicios
+USERS_SERVICE_URL = "http://users:8001"
+# SIGHTINGS_SERVICE_URL = "http://sightings:8002"  # Para futuro
+# MAPS_SERVICE_URL = "http://maps:8003"       # Para futuro
 
 # -------------------------------
 # MODELOS (para request/response)
@@ -13,6 +18,9 @@ class UserSignupRequest(BaseModel):
     email: str
     password: str
 
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
 
 class UserResponse(BaseModel):
     id: int
@@ -20,13 +28,11 @@ class UserResponse(BaseModel):
     xp: int = 0
     level: int = 1
 
-
 class SightingRequest(BaseModel):
     lat: float
     lon: float
     timestamp: datetime
     audio_url: str
-
 
 class SightingResponse(BaseModel):
     id: int
@@ -34,28 +40,54 @@ class SightingResponse(BaseModel):
     confidence: Optional[float] = None
     status: str
 
+# -------------------------------
+# ENDPOINTS USERS (Forward to Users Service)
+# -------------------------------
 
-# ENDPOINTS USERS
-@app.post("/users/signup", response_model=UserResponse)
-def signup_user(request: UserSignupRequest):
-    return UserResponse(id=1, email=request.email)
-
+@app.post("/users/signup", response_model=dict)
+async def signup_user(request: UserSignupRequest):
+    """Forward signup to Users Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{USERS_SERVICE_URL}/register",
+                json={"email": request.email, "password": request.password}
+            )
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Users service unavailable")
 
 @app.post("/users/login")
-def login_user(request: UserSignupRequest):
-    return {"access_token": "fake_token_123"}
+async def login_user(request: UserLoginRequest):
+    """Forward login to Users Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{USERS_SERVICE_URL}/login",
+                json={"email": request.email, "password": request.password}
+            )
+            return response.json()
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Users service unavailable")
 
+@app.get("/users/me")
+async def get_me():
+    """Forward profile request to Users Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{USERS_SERVICE_URL}/profile")
+            return response.json()
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Users service unavailable")
 
-@app.get("/users/me", response_model=UserResponse)
-def get_me():
-    return UserResponse(id=1, email="test@example.com", xp=150, level=3)
-
-
-# ENDPOINTS SIGHTINGS
+# -------------------------------
+# ENDPOINTS SIGHTINGS (Mock por ahora)
+# -------------------------------
 @app.post("/sightings", response_model=SightingResponse)
 def create_sighting(request: SightingRequest):
     return SightingResponse(id=123, status="processing")
-
 
 @app.get("/sightings/{sighting_id}", response_model=SightingResponse)
 def get_sighting(sighting_id: int):
@@ -66,9 +98,9 @@ def get_sighting(sighting_id: int):
         status="processed",
     )
 
-
-
-# ENDPOINTS MAPS
+# -------------------------------
+# ENDPOINTS MAPS (Mock por ahora)
+# -------------------------------
 @app.get("/maps/heatmap")
 def get_heatmap(bbox: str, species: Optional[str] = None):
     return {
@@ -78,4 +110,23 @@ def get_heatmap(bbox: str, species: Optional[str] = None):
         ]
     }
 
-
+# -------------------------------
+# HEALTH CHECK
+# -------------------------------
+@app.get("/health")
+async def health_check():
+    """Check health of all services"""
+    services_health = {}
+    
+    # Check Users Service
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{USERS_SERVICE_URL}/health", timeout=5.0)
+            services_health["users"] = "healthy" if response.status_code == 200 else "unhealthy"
+    except:
+        services_health["users"] = "unavailable"
+    
+    return {
+        "api_gateway": "healthy",
+        "services": services_health
+    }

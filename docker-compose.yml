@@ -17,26 +17,34 @@ services:
       - ROUTES_URL=http://routes:8005
       - ACHIEVEMENTS_URL=http://achievements:8006
     depends_on:
-      - users
-      - sightings
-      - ml_worker
-      - maps
-      - routes
-      - achievements
-      - db
+      db:
+        condition: service_healthy  # ← Esperar que DB esté ready
+      users:
+        condition: service_started
+    networks:
+      - winged_network
 
   users:
     build: ./services/users
-    container_name: users
+    container_name: users  # ← AGREGAR container_name
     ports:
       - "8001:8001"
     volumes:
       - ./services/users/app:/code/app:Z
       - ./services/users/requirements.txt:/code/requirements.txt:Z
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_users
+      # ✅ CORREGIR: usar 'db' que es el nombre real del servicio
+      - DB_HOST=db                    # ← Era postgres_db, pero el servicio se llama 'db'
+      - DB_PORT=5432
+      - DB_NAME=winged_users          # ← Esta DB debe existir
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
     depends_on:
-      - db
+      db:
+        condition: service_healthy    # ← Esperar que PostgreSQL esté ready
+    networks:
+      - winged_network
 
   sightings:
     build: ./services/sightings
@@ -49,8 +57,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_sightings
     depends_on:
-      - db
-      - ml_worker
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
 
   ml_worker:
     build: ./services/ml_worker
@@ -62,6 +72,8 @@ services:
       - ./services/ml_worker/requirements.txt:/code/requirements.txt:Z
     environment:
       - MODEL_PATH=/code/app/birdnet_plugin.py
+    networks:
+      - winged_network
 
   maps:
     build: ./services/maps
@@ -74,7 +86,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_maps
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
 
   routes:
     build: ./services/routes
@@ -87,7 +102,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_routes
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
 
   achievements:
     build: ./services/achievements
@@ -100,7 +118,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_achievements
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
 
   mobile:
     build: ./mobile
@@ -119,6 +140,8 @@ services:
       - API_BASE_URL=http://backend:8000
     depends_on:
       - backend
+    networks:
+      - winged_network
     stdin_open: true
     tty: true
 
@@ -129,11 +152,24 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: postgres  # ← DB por defecto, pero necesitas crear winged_users
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:Z  # ← Scripts de inicialización
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - winged_network
+
+# ✅ AGREGAR NETWORK (estaba faltando!)
+networks:
+  winged_network:
+    driver: bridge
 
 volumes:
   postgres_data:
