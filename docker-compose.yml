@@ -16,6 +16,7 @@ services:
       - MAPS_URL=http://maps:8004
       - ROUTES_URL=http://routes:8005
       - ACHIEVEMENTS_URL=http://achievements:8006
+      - AVEDEX_URL=http://avedex:8007
     depends_on:
       - users
       - sightings
@@ -23,6 +24,7 @@ services:
       - maps
       - routes
       - achievements
+      - avedex
       - db
 
   users:
@@ -101,6 +103,22 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_achievements
     depends_on:
       - db
+
+  avedex:
+    build: ./services/avedex
+    container_name: avedex
+    ports:
+      - "8007:8000"
+    volumes:
+      - ./services/avedex/app:/app/app:Z
+      - ./services/avedex/requirements.txt:/app/requirements.txt:Z
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/winged_avedex
+      - ML_WORKER_URL=http://ml_worker:8003
+      - ENVIRONMENT=development
+    depends_on:
+      - db
+      - ml_worker
 
   mobile:
     build: ./mobile
