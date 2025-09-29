@@ -1,18 +1,23 @@
-# Imagen base# Imagen base
-FROM python:3.12-slim
+# Clean Architecture Achievements Service
+FROM python:3.11-slim
 
-# Crear directorio de trabajo
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
 WORKDIR /code
 
-# Copiar requirements y instalar dependencias
+# Copy requirements and install Python dependencies
 COPY requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Copiar todo el código de la aplicación
+# Copy application code
 COPY ./app /code/app
 
-# Exponer puerto de FastAPI
-EXPOSE 8006
+# Expose FastAPI port
+EXPOSE 8000
 
-# Comando de inicio
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8006", "--reload"]
+# Start command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
