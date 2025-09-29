@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, Float, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .database import Base
+from .config import Base
 
-class Achievement(Base):
+class AchievementModel(Base):
     __tablename__ = "achievements"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -17,9 +17,9 @@ class Achievement(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationship to user achievements
-    user_achievements = relationship("UserAchievement", back_populates="achievement")
+    user_achievements = relationship("UserAchievementModel", back_populates="achievement")
 
-class UserAchievement(Base):
+class UserAchievementModel(Base):
     __tablename__ = "user_achievements"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -29,12 +29,12 @@ class UserAchievement(Base):
     progress = Column(Float, default=0.0)  # Progress towards achievement (0.0 to 1.0)
     
     # Relationships
-    achievement = relationship("Achievement", back_populates="user_achievements")
+    achievement = relationship("AchievementModel", back_populates="user_achievements")
     
     # Ensure a user can only have one record per achievement
     __table_args__ = (UniqueConstraint('user_id', 'achievement_id', name='_user_achievement_uc'),)
 
-class BirdCollection(Base):
+class BirdCollectionModel(Base):
     __tablename__ = "bird_collections"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -51,7 +51,7 @@ class BirdCollection(Base):
     # Ensure a user can only have one record per species
     __table_args__ = (UniqueConstraint('user_id', 'species_name', name='_user_species_uc'),)
 
-class UserStats(Base):
+class UserStatsModel(Base):
     __tablename__ = "user_stats"
     
     id = Column(Integer, primary_key=True, index=True)
