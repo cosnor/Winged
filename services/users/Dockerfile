@@ -1,18 +1,26 @@
-# Imagen base# Imagen base
 FROM python:3.12-slim
 
-# Crear directorio de trabajo
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /code
 
-# Copiar requirements y instalar dependencias
-COPY requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+# Copiar e instalar requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo el código de la aplicación
-COPY ./app /code/app
+# Copiar aplicación
+COPY app/ /code/app/
 
-# Exponer puerto de FastAPI
+# Configurar Python path
+ENV PYTHONPATH=/code/app
+
+# Cambiar al directorio de la app
+WORKDIR /code/app
+
 EXPOSE 8001
 
-# Comando de inicio
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
