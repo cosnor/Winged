@@ -60,10 +60,8 @@ class AuthenticateUserUseCase:
             UserNotActiveError: Si el usuario está desactivado
             UserNotFoundError: Si el usuario no existe
         """
-        
         # PASO 1: Validar entrada básica
         self._validate_input(request)
-        
         # PASO 2: Buscar usuario por email
         user = self._find_user_by_email(request.email)
         

@@ -5,6 +5,7 @@ import bcrypt
 from domain.services.auth_service import AuthService
 from domain.entities.user import User
 
+
 class JWTAuthService(AuthService):
     """
     Implementación del AuthService usando JWT y bcrypt

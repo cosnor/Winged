@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import httpx
+from fastapi import Header
 
 app = FastAPI(title="Winged BFF", version="0.1.0")
 
@@ -73,15 +74,31 @@ async def login_user(request: UserLoginRequest):
             raise HTTPException(status_code=503, detail="Users service unavailable")
 
 @app.get("/users/me")
-async def get_me():
-    """Forward profile request to Users Service"""
+async def get_me(authorization: str = Header(None)):
+    """Forward profile request to Users Service with auth token"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(f"{USERS_SERVICE_URL}/profile")
+            # Reenviar el token en los headers
+            headers = {"Authorization": authorization}
+            response = await client.get(
+                f"{USERS_SERVICE_URL}/profile",
+                headers=headers
+            )
+            
+            if response.status_code == 401:
+                raise HTTPException(status_code=401, detail="Invalid or expired token")
+            elif response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail="Error from users service")
+                
             return response.json()
+            
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Users service unavailable")
-
 # -------------------------------
 # ENDPOINTS SIGHTINGS (Mock por ahora)
 # -------------------------------

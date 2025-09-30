@@ -110,7 +110,6 @@ def login_user(
             email=request.email,
             password=request.password
         )
-        
         # Execute use case
         use_case = AuthenticateUserUseCase(user_repository, auth_service)
         domain_response = use_case.execute(domain_request)
