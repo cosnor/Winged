@@ -45,7 +45,15 @@ export default function Register() {
         <Text style={styles.buttonText}>Iniciar Sesión</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.replace("/register")}>
+      {/* <TouchableOpacity onPress={() =>  router.push("/auth/login")}>
+        <Text style={styles.registerText}>
+          ¿No tienes cuenta?{" "}
+          <Text style={{ color: "#d2691e", fontWeight: "bold" }}>
+            Regístrate
+          </Text>
+        </Text>
+      </TouchableOpacity> */}
+      <TouchableOpacity onPress={() =>  router.push("/map/index")}>
         <Text style={styles.registerText}>
           ¿No tienes cuenta?{" "}
           <Text style={{ color: "#d2691e", fontWeight: "bold" }}>
