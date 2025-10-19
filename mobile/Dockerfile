@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8081 19000 19001 19002
 
 # Comando para iniciar Expo con hot reload habilitado
-CMD ["npx", "expo", "start", "--web", "--host", "lan", "--port", "8081"]
+CMD ["npx", "expo", "start", "--web", "--host", "localhost", "--port", "8081"]

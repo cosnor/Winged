@@ -80,7 +80,6 @@ class RegisterUserUseCase:
             password_hash=password_hash
             # xp=0, level=1, is_active=True se asignan por defecto en User
         )
-        print("Debug XD")
         # PASO 6: Guardar el usuario usando el repositorio
         saved_user = self._user_repository.save(user)
         
