@@ -75,11 +75,6 @@ class UserModel(Base):
         comment="Fecha de última actualización"
     )
     
-    last_login_at = Column(
-        DateTime(timezone=True),
-        nullable=True,  # Puede ser null si nunca ha hecho login
-        comment="Fecha del último login del usuario"
-    )
     
     def __repr__(self) -> str:
         """Representación del modelo para debugging"""
@@ -101,7 +96,6 @@ class UserModel(Base):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "last_login_at": self.last_login_at.isoformat() if self.last_login_at else None
         }
     
     @classmethod

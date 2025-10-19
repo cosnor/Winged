@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import httpx
 import os
+
 
 app = FastAPI(title="Winged BFF", version="0.1.0")
 
@@ -21,16 +22,19 @@ ROUTES_URL = os.getenv("ROUTES_URL", "http://routes:8005")
 class UserSignupRequest(BaseModel):
     email: str
     password: str
+    
 
 class UserLoginRequest(BaseModel):
     email: str
     password: str
 
 class UserResponse(BaseModel):
-    id: int
+    user_id: int
     email: str
     xp: int = 0
     level: int = 1
+    is_active: bool = True
+    created_at: datetime
 
 class SightingRequest(BaseModel):
     user_id: int
@@ -57,9 +61,18 @@ class SightingResponse(BaseModel):
 
 
 # ENDPOINTS USERS
-@app.post("/users/signup", response_model=UserResponse)
-def signup_user(request: UserSignupRequest):
-    return UserResponse(id=1, email=request.email)
+@app.post("/users/signup")
+async def signup_user(request: UserSignupRequest):
+    """Forward signup to Users Service"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{USERS_URL}/register",
+                json={"email": request.email, "password": request.password}
+            )
+            return response.json()
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail="Users service unavailable")
 
 
 @app.post("/users/login")
@@ -68,7 +81,7 @@ async def login_user(request: UserLoginRequest):
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                f"{USERS_SERVICE_URL}/login",
+                f"{USERS_URL}/login",
                 json={"email": request.email, "password": request.password}
             )
             return response.json()
@@ -86,7 +99,7 @@ async def get_me(authorization: str = Header(None)):
             # Reenviar el token en los headers
             headers = {"Authorization": authorization}
             response = await client.get(
-                f"{USERS_SERVICE_URL}/profile",
+                f"{USERS_URL}/profile",
                 headers=headers
             )
             
