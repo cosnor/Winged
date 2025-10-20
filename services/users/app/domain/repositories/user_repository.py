@@ -92,3 +92,26 @@ class UserRepository(ABC):
             user_id: ID del usuario
         """
         pass
+    
+    @abstractmethod
+    def update_level(self, user_id: int, new_level: int) -> None:
+        """
+        Actualiza el nivel del usuario
+        
+        Args:
+            user_id: ID del usuario
+            new_level: Nuevo nivel a asignar
+        """
+        pass
+    
+    @abstractmethod
+    def update_experience(self, user_id: int, new_experience: int) -> None:
+        """
+        Actualiza la experiencia del usuario
+        
+        Args:
+            user_id: ID del usuario
+            new_experience: Nueva experiencia a asignar
+        """
+        pass
+    

@@ -1,4 +1,5 @@
 from typing import Optional, List
+from domain.exceptions.user_exceptions import UserNotFoundError 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
@@ -130,8 +131,7 @@ class UserRepositoryImpl(UserRepository):
             ).first()
             
             if user_model:
-                # Asumiendo que tienes un campo last_login en UserModel
-                # Si no lo tienes, puedes usar updated_at
+                #se usa update_at
                 if hasattr(user_model, 'last_login'):
                     user_model.last_login = datetime.now(timezone.utc)
                 else:
@@ -144,7 +144,45 @@ class UserRepositoryImpl(UserRepository):
         except SQLAlchemyError as e:
             self.session.rollback()
             raise e
-    
+        
+    def update_level(self, user_id: int, new_level: int) -> None:
+        """Update user level in database"""
+        try:
+            user_model = self.session.query(UserModel).filter(
+                UserModel.id == user_id
+            ).first()
+            
+            if not user_model:
+                raise UserNotFoundError(f"User with ID {user_id} not found")
+            
+            user_model.level = new_level
+            user_model.updated_at = datetime.now(timezone.utc)
+            
+            self.session.commit()
+            
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise e
+
+    def update_experience(self, user_id: int, new_experience: int) -> None:
+        """Update user experience in database"""
+        try:
+            user_model = self.session.query(UserModel).filter(
+                UserModel.id == user_id
+            ).first()
+            
+            if not user_model:
+                raise UserNotFoundError(f"User with ID {user_id} not found")
+            
+            user_model.xp = new_experience
+            user_model.updated_at = datetime.now(timezone.utc)
+            
+            self.session.commit()
+            
+        except SQLAlchemyError as e:
+            self.session.rollback()
+            raise e
+        
     def _model_to_entity(self, model: UserModel) -> User:
         """Convert SQLAlchemy model to domain entity"""
         return User(

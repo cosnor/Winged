@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import httpx
 import os
-
+security = HTTPBearer()
 
 app = FastAPI(title="Winged BFF", version="0.1.0")
 
@@ -63,18 +64,42 @@ class SightingResponse(BaseModel):
 # ENDPOINTS USERS
 @app.post("/users/signup")
 async def signup_user(request: UserSignupRequest):
-    """Forward signup to Users Service"""
+    """Register user and auto-login"""
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(
+            register_response = await client.post(
                 f"{USERS_URL}/register",
                 json={"email": request.email, "password": request.password}
             )
-            return response.json()
+         
+            if register_response.status_code != 201:
+                raise HTTPException(
+                    status_code=register_response.status_code, 
+                    detail="Registration failed"
+                )
+            
+            login_response = await client.post(
+                f"{USERS_URL}/login",
+                json={"email": request.email, "password": request.password}
+            )
+            
+            if login_response.status_code != 200:
+                return register_response.json()
+            
+            register_data = register_response.json()
+            login_data = login_response.json()
+            
+            return {
+                "success": True,
+                "message": "User registered and logged in successfully",
+                "data": register_data.get("data", {}),
+                "access_token": login_data.get("access_token"),
+                "refresh_token": login_data.get("refresh_token")
+            }
+            
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Users service unavailable")
-
-
+        
 @app.post("/users/login")
 async def login_user(request: UserLoginRequest):
     """Forward login to Users Service"""
@@ -88,16 +113,17 @@ async def login_user(request: UserLoginRequest):
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Users service unavailable")
 
+async def get_current_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """Extract Bearer token from Authorization header"""
+    return f"Bearer {credentials.credentials}"
+
 @app.get("/users/me")
-async def get_me(authorization: str = Header(None)):
-    """Forward profile request to Users Service with auth token"""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header required")
-    
+async def get_me(token: str = Depends(get_current_token)):
+    """Get current user profile using Bearer token"""
     async with httpx.AsyncClient() as client:
         try:
-            # Reenviar el token en los headers
-            headers = {"Authorization": authorization}
+            # Enviar token en formato correcto
+            headers = {"Authorization": token}
             response = await client.get(
                 f"{USERS_URL}/profile",
                 headers=headers
@@ -114,6 +140,16 @@ async def get_me(authorization: str = Header(None)):
             raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
         except httpx.RequestError:
             raise HTTPException(status_code=503, detail="Users service unavailable")
+
+# Helper function to validate user existence
+async def validate_user_exists(user_id: int) -> bool:
+    """Helper function to validate if user exists"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"{USERS_URL}/users/{user_id}")
+            return response.status_code == 200
+        except httpx.RequestError:
+            return False
 # -------------------------------
 # ENDPOINTS SIGHTINGS (Mock por ahora)
 # -------------------------------
@@ -176,6 +212,8 @@ async def get_user_collection(user_id: int):
 @app.get("/users/{user_id}/achievements")
 async def get_user_achievements(user_id: int):
     """Get user's unlocked achievements"""
+    if not await validate_user_exists(user_id):
+        raise HTTPException(status_code=404, detail="User not found")
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(f"{ACHIEVEMENTS_URL}/users/{user_id}/achievements")
