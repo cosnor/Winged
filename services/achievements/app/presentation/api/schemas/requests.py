@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 
@@ -22,3 +22,17 @@ class CreateAchievementRequest(BaseModel):
     criteria: Optional[Dict[str, Any]] = None
     xp_reward: int = 0
     icon: Optional[str] = None
+
+
+class SpeciesDetectionRequest(BaseModel):
+    """Request schema for species detection from ML worker"""
+    user_id: int
+    species_detected: str
+    confidence: float
+    location: Optional[Dict[str, float]] = None  # {"latitude": float, "longitude": float}
+    detection_metadata: Optional[Dict[str, Any]] = None
+
+
+class BatchSpeciesDetectionRequest(BaseModel):
+    """Request schema for batch species detection processing"""
+    detections: List[SpeciesDetectionRequest]

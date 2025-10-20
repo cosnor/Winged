@@ -1,21 +1,23 @@
-# services/ml_worker/Dockerfile
-FROM python:3.12-slim
+# ML Worker Service Dockerfile
+FROM python:3.11-slim
 
-# Crear directorio de trabajo
-WORKDIR /code
-
-# Instalar dependencias del sistema si hacen falta (ejemplo: numpy, scipy, etc.)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements si lo tienes
+# Create working directory
+WORKDIR /code
+
+# Copy requirements and install Python dependencies
 COPY requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Copiar el código del worker
-COPY . /code
+# Copy application code
+COPY ./app /code/app
 
-# Comando por defecto (ajústalo a tu caso)
-# Si tu worker es un script que se queda escuchando o corriendo en loop:
-CMD ["python", "app/worker.py"]
+# Expose FastAPI port
+EXPOSE 8003
+
+# Start command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
