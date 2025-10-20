@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any
 
-# Domain imports
+from domain.use_cases.update_user_xp import UpdateUserXpUseCase, UpdateUserXpRequest
 from domain.use_cases.register_user import RegisterUserUseCase, RegisterUserRequest as DomainRegisterRequest
 from domain.use_cases.authenticate_user import AuthenticateUserUseCase, AuthenticateUserRequest as DomainAuthRequest
 from domain.use_cases.validate_token import ValidateTokenUseCase, ValidateTokenRequest as DomainValidateRequest
@@ -228,4 +228,104 @@ def get_user_profile(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve profile"
+        )
+        
+    
+from domain.use_cases.get_user_by_id import GetUserByIdUseCase, GetUserByIdRequest
+
+@router.get(
+    "/users/{user_id}",
+    response_model=GetUserProfileResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get user by ID",
+    description="Get user information by user ID (for internal service communication)"
+)
+def get_user_by_id(
+    user_id: int,
+    user_repository = Depends(get_user_repository)
+):
+    """Get user by ID - for service-to-service communication"""
+    try:
+        # Create domain request
+        domain_request = GetUserByIdRequest(user_id=user_id)
+        
+        # Execute use case
+        use_case = GetUserByIdUseCase(user_repository)
+        domain_response = use_case.execute(domain_request)
+        
+        # Create response
+        return GetUserProfileResponse(
+            success=True,
+            message="User found",
+            data=UserInfo(
+                user_id=domain_response.user_id,
+                email=domain_response.email,
+                level=domain_response.level,
+                xp=domain_response.xp,
+                is_active=domain_response.is_active,
+                created_at=domain_response.created_at
+            )
+        )
+        
+    except UserNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user"
+        )
+        
+
+@router.patch(
+    "/users/{user_id}/xp",
+    response_model=GetUserProfileResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update user XP",
+    description="Add XP to user (for internal service communication)"
+)
+def update_user_xp(
+    user_id: int,
+    xp_to_add: int,
+    user_repository = Depends(get_user_repository)
+):
+    """Update user XP - for service-to-service communication"""
+    try:
+        domain_request = UpdateUserXpRequest(
+            user_id=user_id,
+            xp_to_add=xp_to_add
+        )
+        
+        use_case = UpdateUserXpUseCase(user_repository)
+        domain_response = use_case.execute(domain_request)
+        
+        return GetUserProfileResponse(
+            success=True,
+            message=f"User XP updated (+{xp_to_add})",
+            data=UserInfo(
+                user_id=domain_response.user_id,
+                email=domain_response.email,
+                level=domain_response.level,
+                xp=domain_response.xp,
+                is_active=domain_response.is_active,
+                created_at=domain_response.created_at
+            )
+        )
+        
+    except UserNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update user XP"
         )
