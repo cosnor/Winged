@@ -30,7 +30,7 @@ class AchievementsServiceClient:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
                 response = await client.post(
-                    f"{self.base_url}/achievements/species-detection",
+                    f"{self.base_url}/species/detect",
                     json=detection_data
                 )
                 
@@ -60,7 +60,7 @@ class AchievementsServiceClient:
         async with httpx.AsyncClient(timeout=self.timeout * 2) as client:
             try:
                 response = await client.post(
-                    f"{self.base_url}/achievements/species-detection/batch",
+                    f"{self.base_url}/species/detect/batch",
                     json={"detections": detections}
                 )
                 

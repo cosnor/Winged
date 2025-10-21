@@ -97,21 +97,17 @@ class LeaderboardEntryResponse(BaseModel):
 
 class SpeciesDetectionResponse(BaseModel):
     """Response schema for species detection processing"""
-    user_id: int
-    species_detected: str
-    achievements_triggered: List[AchievementResponse]
-    new_achievements_count: int
-    total_achievements_count: int
-    xp_earned: int
-    total_xp: int
+    success: bool
+    message: str
+    triggered_achievements: List[dict]
+    species_detected: Optional[dict] = None
 
 
 class BatchSpeciesDetectionResponse(BaseModel):
     """Response schema for batch species detection processing"""
-    processed_count: int
-    success_count: int
-    error_count: int
+    success: bool
+    message: str
+    total_processed: int
     total_achievements_triggered: int
-    total_xp_earned: int
-    results: List[SpeciesDetectionResponse]
-    errors: Optional[List[str]] = None
+    triggered_achievements: List[dict]
+    processed_detections: List[dict]

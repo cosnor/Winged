@@ -27,10 +27,10 @@ class CreateAchievementRequest(BaseModel):
 class SpeciesDetectionRequest(BaseModel):
     """Request schema for species detection from ML worker"""
     user_id: int
-    species_detected: str
+    species_name: str
     confidence: float
-    location: Optional[Dict[str, float]] = None  # {"latitude": float, "longitude": float}
-    detection_metadata: Optional[Dict[str, Any]] = None
+    location: Optional[Dict[str, Any]] = None
+    detection_time: datetime
 
 
 class BatchSpeciesDetectionRequest(BaseModel):

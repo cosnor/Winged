@@ -61,15 +61,16 @@ async def create_sighting(sighting: SightingCreate):
             achievement_data = {
                 "user_id": sighting.user_id,
                 "species_name": sighting.species_name,
-                "common_name": sighting.common_name,
-                "confidence_score": sighting.confidence_score,
-                "location_lat": sighting.location_lat,
-                "location_lon": sighting.location_lon,
-                "timestamp": sighting.timestamp.isoformat()
+                "confidence": sighting.confidence_score,
+                "location": {
+                    "latitude": sighting.location_lat,
+                    "longitude": sighting.location_lon
+                },
+                "detection_time": sighting.timestamp.isoformat()
             }
             
             response = await client.post(
-                f"{ACHIEVEMENTS_URL}/sightings/process",
+                f"{ACHIEVEMENTS_URL}/species/detect",
                 json=achievement_data,
                 timeout=10.0
             )

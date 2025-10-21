@@ -73,7 +73,7 @@ services:
     environment:
       # Service URLs for integration
       - ACHIEVEMENTS_SERVICE_URL=http://achievements:8006
-      - SIGHTINGS_SERVICE_URL=http://sightings:8005
+      - SIGHTINGS_SERVICE_URL=http://sightings:8002
       - BIRDNET_API_URL=http://birdnet-api:8000
       
       # Database Integration (configure with your MongoDB URL)
