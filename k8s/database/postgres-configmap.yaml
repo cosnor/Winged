@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: winged
+data:
+  01_create_databases.sql: |
+    -- Create databases for each service
+    CREATE DATABASE winged_users;
+    CREATE DATABASE winged_sightings;
+    CREATE DATABASE winged_maps;
+    CREATE DATABASE winged_routes;
+    CREATE DATABASE winged_achievements;
+    
+    -- Grant permissions
+    GRANT ALL PRIVILEGES ON DATABASE winged_users TO postgres;
+    GRANT ALL PRIVILEGES ON DATABASE winged_sightings TO postgres;
+    GRANT ALL PRIVILEGES ON DATABASE winged_maps TO postgres;
+    GRANT ALL PRIVILEGES ON DATABASE winged_routes TO postgres;
+    GRANT ALL PRIVILEGES ON DATABASE winged_achievements TO postgres;
+  02_enable_extensions.sql: |
+    -- Enable PostGIS extension for spatial data
+    \c winged_maps;
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    CREATE EXTENSION IF NOT EXISTS postgis_topology;
+    
+    \c winged_routes;
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    CREATE EXTENSION IF NOT EXISTS postgis_topology;

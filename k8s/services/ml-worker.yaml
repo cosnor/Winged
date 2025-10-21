@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-worker
+  namespace: winged
+  labels:
+    app: ml-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-worker
+  template:
+    metadata:
+      labels:
+        app: ml-worker
+    spec:
+      containers:
+      - name: ml-worker
+        image: winged/ml-worker:latest  # Replace with your actual image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8003
+        env:
+        - name: ACHIEVEMENTS_SERVICE_URL
+          value: "http://achievements-service:8006"
+        - name: SIGHTINGS_SERVICE_URL
+          value: "http://sightings-service:8002"
+        - name: BIRDNET_API_URL
+          value: "http://birdnet-api:8000"
+        # Add MongoDB configuration when ready
+        # - name: BIRDNET_MONGODB_URL
+        #   value: "mongodb://username:password@mongodb_host:27017/birdnet_db"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-worker-service
+  namespace: winged
+  labels:
+    app: ml-worker
+spec:
+  selector:
+    app: ml-worker
+  ports:
+  - port: 8003
+    targetPort: 8003
+    protocol: TCP
+    name: http
+  type: ClusterIP

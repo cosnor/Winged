@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: achievements
+  namespace: winged
+  labels:
+    app: achievements
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: achievements
+  template:
+    metadata:
+      labels:
+        app: achievements
+    spec:
+      containers:
+      - name: achievements
+        image: winged/achievements:latest  # Replace with your actual image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8006
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres:postgres@postgres-service:5432/winged_achievements"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: achievements-service
+  namespace: winged
+  labels:
+    app: achievements
+spec:
+  selector:
+    app: achievements
+  ports:
+  - port: 8006
+    targetPort: 8006
+    protocol: TCP
+    name: http
+  type: ClusterIP
