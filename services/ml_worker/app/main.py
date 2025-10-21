@@ -36,12 +36,12 @@ app.add_middleware(
 
 # Configuration
 ACHIEVEMENTS_URL = os.getenv("ACHIEVEMENTS_SERVICE_URL", "http://achievements:8006")
-SIGHTINGS_URL = os.getenv("SIGHTINGS_SERVICE_URL", "http://sightings:8005")
-BIRDNET_API_URL = os.getenv("BIRDNET_API_URL", "http://birdnet-api:8000")
+SIGHTINGS_URL = os.getenv("SIGHTINGS_SERVICE_URL", "http://sightings:8002")
+BIRDNET_API_URL = os.getenv("BIRDNET_API_URL", "http://host.docker.internal:8000")
 
-# MongoDB configuration for BirdNet database integration
-MONGODB_URL = os.getenv("BIRDNET_MONGODB_URL", None)
-MONGODB_DATABASE = os.getenv("BIRDNET_DATABASE_NAME", "birdnet")
+# MongoDB configuration for BirdNet database integration  
+MONGODB_URL = os.getenv("BIRDNET_MONGODB_URL", "mongodb://admin:birdnet123@host.docker.internal:27017/birdnet_db?authSource=admin")
+MONGODB_DATABASE = os.getenv("BIRDNET_DATABASE_NAME", "birdnet_db")
 SESSIONS_COLLECTION = os.getenv("BIRDNET_SESSIONS_COLLECTION", "sessions")
 DETECTIONS_COLLECTION = os.getenv("BIRDNET_DETECTIONS_COLLECTION", "detections")
 
@@ -288,6 +288,123 @@ async def identify_bird(
         logger.error(f"Error in bird identification: {e}")
         raise HTTPException(status_code=500, detail=f"Identification failed: {str(e)}")
 
+@app.post("/birdnet/analyze-audio", response_model=BirdIdentificationResponse)
+async def analyze_audio_with_birdnet(
+    audio: UploadFile = File(...),
+    user_id: Optional[int] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None
+):
+    """
+    Analyze audio file using BirdNET microservice and trigger achievements
+    """
+    
+    if not birdnet_client:
+        raise HTTPException(status_code=503, detail="BirdNet microservice client not configured")
+    
+    if not audio.content_type or not audio.content_type.startswith('audio/'):
+        raise HTTPException(status_code=400, detail="File must be an audio file")
+    
+    try:
+        # Read audio data
+        audio_data = await audio.read()
+        
+        if len(audio_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty audio file")
+        
+        # Save audio to temporary file for BirdNET analysis
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+            temp_file.write(audio_data)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Create a session for processing via BirdNET microservice
+            import uuid
+            session_id = str(uuid.uuid4())
+            
+            # You can implement WebSocket communication or use REST API
+            # For now, let's use the session-based approach
+            
+            # Process the audio and get recent detections
+            recent_sessions = await birdnet_client.get_recent_sessions(limit=1, hours_back=1)
+            
+            if not recent_sessions:
+                # No recent sessions found - this would be improved with direct audio upload
+                logger.warning("No recent BirdNET sessions found")
+                raise HTTPException(status_code=404, detail="No recent bird detections available")
+            
+            # Get the most recent session
+            latest_session = recent_sessions[0]
+            session_detections = await birdnet_client.get_session_detections(latest_session['session_id'])
+            
+            if not session_detections:
+                raise HTTPException(status_code=404, detail="No detections found in recent session")
+            
+            # Get the best detection (highest confidence)
+            best_detection = max(session_detections, key=lambda x: x.get('confidence', 0))
+            
+            # Get species information
+            species_code = best_detection.get('species_code', '')
+            species_info = get_species_info(species_code)
+            
+            response = BirdIdentificationResponse(
+                species=best_detection.get('species_name', 'Unknown'),
+                confidence=best_detection.get('confidence', 0.0),
+                species_code=species_code,
+                common_name=species_info.get('common_name', best_detection.get('species_name', 'Unknown')),
+                scientific_name=species_info.get('scientific_name', 'Unknown'),
+                achievements_triggered=[],
+                sighting_created=False
+            )
+            
+            # Process achievements if user_id is provided
+            if user_id and achievements_client:
+                try:
+                    detection_data = {
+                        "user_id": user_id,
+                        "species_name": best_detection.get('species_name', 'Unknown'),
+                        "confidence": best_detection.get('confidence', 0.0),
+                        "location": {"latitude": latitude or 0.0, "longitude": longitude or 0.0},
+                        "detection_time": datetime.now().isoformat()
+                    }
+                    
+                    achievements = await achievements_client.process_species_detection(detection_data)
+                    if achievements:
+                        response.achievements_triggered = [ach.get("name", "Unknown") for ach in achievements]
+                        
+                    # Create sighting record if sightings client is available
+                    if sightings_client:
+                        sighting_data = {
+                            "user_id": user_id,
+                            "species_name": best_detection.get('species_name', 'Unknown'),
+                            "location": {"lat": latitude or 0.0, "lon": longitude or 0.0},
+                            "confidence": best_detection.get('confidence', 0.0),
+                            "timestamp": datetime.now().isoformat(),
+                            "source": "birdnet_microservice"
+                        }
+                        
+                        sighting_result = await sightings_client.create_sighting(sighting_data)
+                        if sighting_result:
+                            response.sighting_created = True
+                
+                except Exception as e:
+                    logger.warning(f"Failed to process achievements/sightings for user {user_id}: {e}")
+            
+            return response
+            
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in BirdNET audio analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"BirdNET analysis failed: {str(e)}")
+
 # BirdNet HTTP API Integration endpoints
 @app.post("/birdnet/process-session")
 async def process_birdnet_session(request: BirdNetSessionRequest):
@@ -368,6 +485,77 @@ async def sync_recent_birdnet_sessions(limit: int = 10, hours_back: int = 24):
         
     except Exception as e:
         logger.error(f"Error syncing recent BirdNet sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/birdnet/sync-user-detections/{user_id}")
+async def sync_user_detections_to_achievements(
+    user_id: int,
+    hours_back: int = 24,
+    min_confidence: float = 0.7
+):
+    """
+    Sync recent BirdNET detections for a specific user and process achievements
+    """
+    
+    if not birdnet_client or not achievements_client:
+        raise HTTPException(status_code=503, detail="BirdNet or achievements service not configured")
+    
+    try:
+        # Get recent sessions (since we don't have user mapping yet, get all recent)
+        sessions = await birdnet_client.get_recent_sessions(limit=50, hours_back=hours_back)
+        
+        processed_detections = []
+        achievements_triggered = []
+        
+        for session in sessions:
+            session_id = session.get('session_id')
+            if not session_id:
+                continue
+                
+            # Get detections for this session
+            detections = await birdnet_client.get_session_detections(session_id)
+            
+            for detection in detections:
+                confidence = detection.get('confidence', 0.0)
+                if confidence < min_confidence:
+                    continue
+                
+                try:
+                    # Process detection for achievements
+                    detection_data = {
+                        "user_id": user_id,
+                        "species_name": detection.get('species_name', 'Unknown'),
+                        "confidence": confidence,
+                        "location": {"latitude": 0.0, "longitude": 0.0},  # Default location
+                        "detection_time": detection.get('detected_at', datetime.now().isoformat())
+                    }
+                    
+                    # Send to achievements service
+                    achievements = await achievements_client.process_species_detection(detection_data)
+                    
+                    if achievements:
+                        achievements_triggered.extend(achievements)
+                    
+                    processed_detections.append({
+                        "session_id": session_id,
+                        "species": detection.get('species_name'),
+                        "confidence": confidence,
+                        "achievements": len(achievements) if achievements else 0
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Failed to process detection {detection.get('species_name', 'Unknown')}: {e}")
+        
+        return {
+            "user_id": user_id,
+            "detections_processed": len(processed_detections),
+            "achievements_triggered": len(achievements_triggered),
+            "detections": processed_detections,
+            "achievements": achievements_triggered
+        }
+        
+    except Exception as e:
+        logger.error(f"Error syncing user detections: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Database Integration endpoints

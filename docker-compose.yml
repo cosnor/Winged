@@ -5,7 +5,7 @@ services:
     build: ./backend
     container_name: backend
     ports:
-      - "8000:8000"
+      - "8007:8000"
     volumes:
       - ./backend/app:/code/app:Z
       - ./backend/requirements.txt:/code/requirements.txt:Z
@@ -74,13 +74,13 @@ services:
       # Service URLs for integration
       - ACHIEVEMENTS_SERVICE_URL=http://achievements:8006
       - SIGHTINGS_SERVICE_URL=http://sightings:8002
-      - BIRDNET_API_URL=http://birdnet-api:8000
+      - BIRDNET_API_URL=http://host.docker.internal:8000
       
-      # Database Integration (configure with your MongoDB URL)
-      # - BIRDNET_MONGODB_URL=mongodb://username:password@mongodb_host:27017/birdnet_db
-      # - BIRDNET_DATABASE_NAME=birdnet_production
-      # - BIRDNET_SESSIONS_COLLECTION=sessions  
-      # - BIRDNET_DETECTIONS_COLLECTION=detections
+      # BirdNET Microservice MongoDB Integration
+      - BIRDNET_MONGODB_URL=mongodb://admin:birdnet123@host.docker.internal:27017/birdnet_db?authSource=admin
+      - BIRDNET_DATABASE_NAME=birdnet_db
+      - BIRDNET_SESSIONS_COLLECTION=sessions  
+      - BIRDNET_DETECTIONS_COLLECTION=detections
     depends_on:
       - achievements
     networks:
@@ -138,7 +138,7 @@ services:
     build: ./mobile
     container_name: mobile_app
     ports:
-      - "8081:8081"
+      - "8082:8081"
       - "19000:19000"
       - "19001:19001"
     volumes:

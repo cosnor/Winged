@@ -2,13 +2,22 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from .infrastructure.database.config import engine, Base, SessionLocal
-from .infrastructure.database.repositories import SQLAlchemyAchievementRepository
+from .infrastructure.database.repositories import (
+    SQLAlchemyAchievementRepository,
+    SQLAlchemyBirdCollectionRepository,
+    SQLAlchemyUserStatsRepository,
+    SQLAlchemyUserAchievementRepository
+)
 from .presentation.api.controllers import achievement_controller, user_controller, leaderboard_controller
 from .presentation.dependencies import get_achievement_service
 from .application.services.achievement_application_service import AchievementApplicationService
 from .application.use_cases.manage_achievements import ManageAchievementsUseCase
-from .presentation.schemas.requests import SpeciesDetectionRequest, BatchSpeciesDetectionRequest
-from .presentation.schemas.responses import SpeciesDetectionResponse, BatchSpeciesDetectionResponse
+from .application.use_cases.process_sighting import ProcessSightingUseCase, ProcessSightingRequest
+from .presentation.api.schemas.requests import SpeciesDetectionRequest, BatchSpeciesDetectionRequest
+from .presentation.api.schemas.responses import SpeciesDetectionResponse, BatchSpeciesDetectionResponse
+from .domain.value_objects.sighting_event import SightingEvent
+from .domain.value_objects.location import Location
+from .domain.services.achievement_domain_service import AchievementDomainService
 import logging
 
 
@@ -115,31 +124,55 @@ async def process_species_detection(
 ):
     """Process individual species detection and trigger achievements"""
     try:
-        # Create use case instance
+        # Create repository instances
         achievement_repo = SQLAlchemyAchievementRepository(session)
-        manage_use_case = ManageAchievementsUseCase(achievement_repo)
+        bird_collection_repo = SQLAlchemyBirdCollectionRepository(session)
+        user_stats_repo = SQLAlchemyUserStatsRepository(session)
+        user_achievement_repo = SQLAlchemyUserAchievementRepository(session)
         
-        # Process species detection
-        triggered_achievements = manage_use_case.process_species_detection(
+        # Create domain service
+        achievement_domain_service = AchievementDomainService()
+        
+        # Create use case instance
+        process_sighting_use_case = ProcessSightingUseCase(
+            bird_collection_repo=bird_collection_repo,
+            user_stats_repo=user_stats_repo,
+            user_achievement_repo=user_achievement_repo,
+            achievement_repo=achievement_repo,
+            achievement_domain_service=achievement_domain_service
+        )
+        
+        # Create sighting event from request
+        location = Location(
+            latitude=request.location.get('latitude', request.location.get('lat', 0.0)),
+            longitude=request.location.get('longitude', request.location.get('lon', 0.0))
+        )
+        
+        sighting_event = SightingEvent(
             user_id=request.user_id,
             species_name=request.species_name,
-            confidence=request.confidence,
-            location=request.location,
-            detection_time=request.detection_time
+            common_name=request.species_name,  # You might want to map this to common name
+            confidence_score=request.confidence,
+            location=location,
+            timestamp=request.detection_time
         )
+        
+        # Process the sighting
+        sighting_request = ProcessSightingRequest(sighting_event=sighting_event)
+        response = await process_sighting_use_case.execute(sighting_request)
         
         return SpeciesDetectionResponse(
             success=True,
             message=f"Processed detection of {request.species_name}",
             triggered_achievements=[
                 {
-                    "id": achievement.id,
-                    "title": achievement.title,
-                    "description": achievement.description,
-                    "type": achievement.achievement_type,
-                    "category": achievement.category
+                    "id": achievement.achievement.id,
+                    "title": achievement.achievement.name,
+                    "description": achievement.achievement.description,
+                    "type": achievement.achievement.category,
+                    "category": achievement.achievement.category
                 }
-                for achievement in triggered_achievements
+                for achievement in response.newly_unlocked_achievements
             ],
             species_detected={
                 "name": request.species_name,
@@ -166,9 +199,23 @@ async def process_batch_species_detection(
 ):
     """Process batch species detections and trigger achievements"""
     try:
-        # Create use case instance
+        # Create repository instances
         achievement_repo = SQLAlchemyAchievementRepository(session)
-        manage_use_case = ManageAchievementsUseCase(achievement_repo)
+        bird_collection_repo = SQLAlchemyBirdCollectionRepository(session)
+        user_stats_repo = SQLAlchemyUserStatsRepository(session)
+        user_achievement_repo = SQLAlchemyUserAchievementRepository(session)
+        
+        # Create domain service
+        achievement_domain_service = AchievementDomainService()
+        
+        # Create use case instance
+        process_sighting_use_case = ProcessSightingUseCase(
+            bird_collection_repo=bird_collection_repo,
+            user_stats_repo=user_stats_repo,
+            user_achievement_repo=user_achievement_repo,
+            achievement_repo=achievement_repo,
+            achievement_domain_service=achievement_domain_service
+        )
         
         all_triggered_achievements = []
         processed_detections = []
@@ -176,15 +223,26 @@ async def process_batch_species_detection(
         # Process each detection
         for detection in request.detections:
             try:
-                triggered_achievements = manage_use_case.process_species_detection(
-                    user_id=detection.user_id,
-                    species_name=detection.species_name,
-                    confidence=detection.confidence,
-                    location=detection.location,
-                    detection_time=detection.detection_time
+                # Create location and sighting event
+                location = Location(
+                    latitude=detection.location.get('latitude', detection.location.get('lat', 0.0)),
+                    longitude=detection.location.get('longitude', detection.location.get('lon', 0.0))
                 )
                 
-                all_triggered_achievements.extend(triggered_achievements)
+                sighting_event = SightingEvent(
+                    user_id=detection.user_id,
+                    species_name=detection.species_name,
+                    common_name=detection.species_name,
+                    confidence_score=detection.confidence,
+                    location=location,
+                    timestamp=detection.detection_time
+                )
+                
+                # Process the sighting
+                sighting_request = ProcessSightingRequest(sighting_event=sighting_event)
+                response = await process_sighting_use_case.execute(sighting_request)
+                
+                all_triggered_achievements.extend(response.newly_unlocked_achievements)
                 processed_detections.append({
                     "name": detection.species_name,
                     "confidence": detection.confidence,
@@ -210,11 +268,11 @@ async def process_batch_species_detection(
             total_achievements_triggered=len(all_triggered_achievements),
             triggered_achievements=[
                 {
-                    "id": achievement.id,
-                    "title": achievement.title,
-                    "description": achievement.description,
-                    "type": achievement.achievement_type,
-                    "category": achievement.category
+                    "id": achievement.achievement.id,
+                    "title": achievement.achievement.name,
+                    "description": achievement.achievement.description,
+                    "type": achievement.achievement.category,
+                    "category": achievement.achievement.category
                 }
                 for achievement in all_triggered_achievements
             ],

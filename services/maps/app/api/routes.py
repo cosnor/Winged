@@ -21,7 +21,7 @@ def get_zones():
     para que el frontend pueda dibujarlas en el mapa.
     """
     import geopandas as gpd
-    zonas = gpd.read_file("services/maps/app/data/barriosbaq.geojson").to_crs(epsg=4326)
+    zonas = gpd.read_file("app/data/barriosbaq.geojson").to_crs(epsg=4326)
     return zonas.__geo_interface__
 
 @router.post("/distribution")

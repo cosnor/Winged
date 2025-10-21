@@ -310,7 +310,7 @@ async def health_check():
     # Check Users Service
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{USERS_SERVICE_URL}/health", timeout=5.0)
+            response = await client.get(f"{USERS_URL}/health", timeout=5.0)
             services_health["users"] = "healthy" if response.status_code == 200 else "unhealthy"
     except:
         services_health["users"] = "unavailable"
