@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: winged
+
+resources:
+  # Namespace
+  - namespace/winged-namespace.yaml
+  
+  # Database
+  - database/postgres-secret.yaml
+  - database/postgres-configmap.yaml
+  - database/postgres-pvc.yaml
+  - database/postgres-deployment.yaml
+  - database/postgres-service.yaml
+  
+  # Backend (BFF/Gateway)
+  - backend/backend-configmap.yaml
+  - backend/backend-deployment.yaml
+  - backend/backend-service.yaml
+  
+  # Microservices
+  - services/users.yaml
+  - services/sightings.yaml
+  - services/ml-worker.yaml
+  - services/maps.yaml
+  - services/routes.yaml
+  - services/achievements.yaml
+  
+  # Mobile App
+  - mobile/mobile-deployment.yaml
+  
+  # Ingress
+  - ingress/winged-ingress.yaml
+
+commonLabels:
+  project: winged
+  version: v1.0.0
+  environment: production
+
+images:
+  - name: winged/backend
+    newTag: latest
+  - name: winged/users
+    newTag: latest
+  - name: winged/sightings
+    newTag: latest
+  - name: winged/ml-worker
+    newTag: latest
+  - name: winged/maps
+    newTag: latest
+  - name: winged/routes
+    newTag: latest
+  - name: winged/achievements
+    newTag: latest
+  - name: winged/mobile
+    newTag: latest

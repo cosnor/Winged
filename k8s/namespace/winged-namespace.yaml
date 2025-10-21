@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: winged
+  labels:
+    name: winged
+    environment: production
+    app: winged-bird-app

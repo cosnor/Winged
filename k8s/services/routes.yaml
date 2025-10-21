@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routes
+  namespace: winged
+  labels:
+    app: routes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: routes
+  template:
+    metadata:
+      labels:
+        app: routes
+    spec:
+      containers:
+      - name: routes
+        image: winged/routes:latest  # Replace with your actual image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8005
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres:postgres@postgres-service:5432/winged_routes"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: routes-service
+  namespace: winged
+  labels:
+    app: routes
+spec:
+  selector:
+    app: routes
+  ports:
+  - port: 8005
+    targetPort: 8005
+    protocol: TCP
+    name: http
+  type: ClusterIP

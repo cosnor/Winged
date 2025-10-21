@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maps
+  namespace: winged
+  labels:
+    app: maps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maps
+  template:
+    metadata:
+      labels:
+        app: maps
+    spec:
+      containers:
+      - name: maps
+        image: winged/maps:latest  # Replace with your actual image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8004
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres:postgres@postgres-service:5432/winged_maps"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maps-service
+  namespace: winged
+  labels:
+    app: maps
+spec:
+  selector:
+    app: maps
+  ports:
+  - port: 8004
+    targetPort: 8004
+    protocol: TCP
+    name: http
+  type: ClusterIP

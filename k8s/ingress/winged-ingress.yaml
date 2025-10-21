@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: winged-ingress
+  namespace: winged
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx  # Adjust according to your ingress controller
+  rules:
+  - host: api.winged.local  # Replace with your actual domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 8000
+  - host: mobile.winged.local  # For mobile app development
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mobile-service
+            port:
+              number: 8081
+      - path: /metro
+        pathType: Prefix
+        backend:
+          service:
+            name: mobile-service
+            port:
+              number: 19000
+  # Optional: TLS configuration
+  # tls:
+  # - hosts:
+  #   - api.winged.local
+  #   - mobile.winged.local
+  #   secretName: winged-tls-secret
