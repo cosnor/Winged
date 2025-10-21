@@ -35,7 +35,7 @@ Winged integrates with BirdNET analyzer for real-time bird species identificatio
 #### 1. Clone BirdNET-Analyzer Repository
 ```bash
 # Clone the BirdNET analyzer repository
-git clone https://github.com/kahst/BirdNET-Analyzer.git
+git clone https://github.com/albertojs7/BirdNET-Analyzer.git
 cd BirdNET-Analyzer
 ```
 
