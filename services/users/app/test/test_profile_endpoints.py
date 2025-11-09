@@ -121,6 +121,7 @@ class TestGetUserById:
         # Mock response from use case
         mock_response = Mock()
         mock_response.user_id = 1
+        mock_response.name = "Test User"
         mock_response.email = "test@example.com"
         mock_response.level = 2
         mock_response.xp = 100
@@ -144,6 +145,7 @@ class TestGetUserById:
             assert data["success"] is True
             assert data["message"] == "User found"
             assert data["data"]["user_id"] == 1
+            assert data["data"]["name"] == "Test User"
             assert data["data"]["email"] == "test@example.com"
             assert data["data"]["level"] == 2
             assert data["data"]["xp"] == 100

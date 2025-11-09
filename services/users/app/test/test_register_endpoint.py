@@ -16,6 +16,7 @@ class TestRegisterUser:
         # Mock response from use case
         mock_response = Mock()
         mock_response.user_id = 1
+        mock_response.name = "New User"
         mock_response.email = "newuser@example.com"
         mock_response.level = 1
         mock_response.xp = 0
@@ -40,6 +41,7 @@ class TestRegisterUser:
             assert data["success"] is True
             assert data["message"] == "User registered successfully"
             assert data["data"]["user_id"] == 1
+            assert data["data"]["name"] == "New User"
             assert data["data"]["email"] == "newuser@example.com"
             assert data["data"]["level"] == 1
             assert data["data"]["xp"] == 0

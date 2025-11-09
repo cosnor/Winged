@@ -17,6 +17,7 @@ class TestValidateToken:
         mock_response = Mock()
         mock_response.is_valid = True
         mock_response.user_id = 1
+        mock_response.name = "Test User"
         mock_response.email = "test@example.com"
         mock_response.level = 2
         mock_response.xp = 100

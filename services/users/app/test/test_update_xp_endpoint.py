@@ -15,6 +15,7 @@ class TestUpdateUserXP:
         # Mock updated user response
         updated_user = {
             "user_id": 1,
+            "name": "Test User",
             "email": "test@example.com",
             "level": 3,  # Level increased due to XP gain
             "xp": 250,   # XP increased
@@ -30,6 +31,7 @@ class TestUpdateUserXP:
             mock_use_case_instance = Mock()
             mock_response = Mock()
             mock_response.user_id = updated_user["user_id"]
+            mock_response.name = "Test User"
             mock_response.email = updated_user["email"]
             mock_response.level = updated_user["level"]
             mock_response.xp = updated_user["xp"]
@@ -122,6 +124,7 @@ class TestUpdateUserXP:
         # Mock user response
         updated_user = {
             "user_id": 1,
+            "name": "Test User",
             "email": "test@example.com",
             "level": 1,
             "xp": 50,  # XP decreased
@@ -137,6 +140,7 @@ class TestUpdateUserXP:
             mock_use_case_instance = Mock()
             mock_response = Mock()
             mock_response.user_id = updated_user["user_id"]
+            mock_response.name = "Test User"
             mock_response.email = updated_user["email"]
             mock_response.level = updated_user["level"]
             mock_response.xp = updated_user["xp"]
@@ -166,6 +170,7 @@ class TestUpdateUserXP:
             mock_use_case_instance = Mock()
             mock_response = Mock()
             mock_response.user_id = 1
+            mock_response.name = "Test User"
             mock_response.email = "test@example.com"
             mock_response.level = 2
             mock_response.xp = 100  # XP unchanged

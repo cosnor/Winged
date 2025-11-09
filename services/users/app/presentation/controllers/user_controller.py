@@ -8,6 +8,7 @@ from domain.use_cases.validate_token import ValidateTokenUseCase, ValidateTokenR
 from domain.exceptions.user_exceptions import (
     EmailAlreadyExistsError, 
     InvalidCredentialsError,
+    InvalidNameError,
     InvalidTokenError,
     UserNotFoundError
 )
@@ -80,7 +81,11 @@ def register_user(
         )
         
         return response
-        
+    except InvalidNameError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except EmailAlreadyExistsError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

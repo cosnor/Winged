@@ -5,7 +5,8 @@ from domain.services.auth_service import AuthService
 from domain.exceptions.user_exceptions import (
     EmailAlreadyExistsError, 
     InvalidEmailError, 
-    InvalidPasswordError
+    InvalidPasswordError,
+    InvalidNameError
 )
 
 @dataclass
@@ -99,6 +100,9 @@ class RegisterUserUseCase:
     
     def _validate_input(self, request: RegisterUserRequest) -> None:
         """Valida la entrada básica del request"""
+        if not request.name or not request.name.strip():
+            raise InvalidNameError("Name is required")
+        
         if not request.email or not request.email.strip():
             raise InvalidEmailError("Email is required")
         

@@ -26,6 +26,10 @@ class InvalidCredentialsError(UserDomainException):
     """Se lanza cuando email/contraseña son incorrectos"""
     pass
 
-class InvalidTokenError(UserDomainException):  # ← AGREGAR ESTA
-    """Raised when JWT token is invalid or expired"""
+class InvalidTokenError(UserDomainException):
+    """Se lanza cuando el token JWT es inválido o ha expirado"""
+    pass
+
+class InvalidNameError(UserDomainException):
+    """Se lanza cuando el nombre no es válido"""
     pass
