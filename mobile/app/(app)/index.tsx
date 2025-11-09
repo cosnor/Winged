@@ -1,15 +1,10 @@
-// import { Redirect } from 'expo-router';
-
-// export default function Index() {
-//   return <Redirect href="/(auth)/login" />;
-// }
-
 import { Text, View, StyleSheet } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from "../styles/theme";
-import InfoCard from "../components/cards/InfoCard";
-import MainButton from "../components/ui/MainButton";
+import { theme } from "../../styles/theme";
+import InfoCard from "../../components/cards/InfoCard";
+import MainButton from "../../components/ui/MainButton";
 import { router } from "expo-router";
+import BottomTabs from "../../components/navigation/BottomTabs";    
 
 export default function Index() {
     return (
@@ -20,11 +15,8 @@ export default function Index() {
                 <InfoCard title="Identifica aves por audio"/>
                 <InfoCard title="Crea tu avedex personal"/>
                 <InfoCard title="Haz de tu barrio una selva"/>
-                <MainButton 
-                    title="COMENZAR" 
-                    onPress={() => router.push("/login")}                
-                />
             </View>
+            <BottomTabs />
         </SafeAreaView>
     );
 }

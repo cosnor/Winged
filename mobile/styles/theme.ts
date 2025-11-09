@@ -1,4 +1,4 @@
-export const theme = {
+export const theme: any = {
   colors: {
     // Primary colors from gaming aesthetic
     primary: "#d97706", // amber
