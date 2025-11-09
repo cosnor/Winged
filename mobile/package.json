@@ -12,15 +12,24 @@
     "docker:build": "docker build -t winged-mobile ."
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "axios": "^1.12.2",
-    "expo": "~54.0.7",
+    "expo": "54.0.23",
+    "expo-av": "~16.0.7",
+    "expo-document-picker": "~14.0.7",
+    "expo-file-system": "~19.0.17",
     "expo-location": "^19.0.7",
-    "expo-router": "~6.0.6",
+    "expo-router": "6.0.14",
     "expo-status-bar": "~3.0.8",
+    "framer-motion": "^12.23.24",
+    "moti": "^0.30.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-native": "0.81.4",
-    "react-native-maps": "^1.26.9",
+    "react-native": "0.81.5",
+    "react-native-animatable": "^1.4.0",
+    "react-native-maps": "1.20.1",
+    "react-native-reanimated": "~4.1.1",
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {

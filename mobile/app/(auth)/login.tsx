@@ -7,14 +7,54 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { router } from "expo-router";
+import StatusMessage from "../../components/ui/StatusMessage";
 
 export default function Login() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [status, setStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+    visible: boolean;
+  }>({
+    type: 'error',
+    message: '',
+    visible: false
+  });
 
-  const handleLogin = () => {
-    console.log("Intentando iniciar sesión con:", email, password);
-    // Aquí iría la lógica de autenticación (Firebase, API, etc.)
+  const handleLogin = async () => {
+    try {
+      setStatus({ type: 'error', message: '', visible: false });
+
+      if (!email || !password) {
+        setStatus({
+          type: 'error',
+          message: 'Por favor ingresa tu correo y contraseña',
+          visible: true
+        });
+        return;
+      }
+
+      // Aquí iría la lógica de autenticación (Firebase, API, etc.)
+      // Simularemos una operación asíncrona
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setStatus({
+        type: 'success',
+        message: '¡Bienvenido de vuelta!',
+        visible: true
+      });
+
+      // Redirigir después de un pequeño delay
+      setTimeout(() => {
+         router.push("/(app)");
+      }, 1000);    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: 'Error al iniciar sesión. Verifica tus credenciales.',
+        visible: true
+      });
+    }
   };
 
   return (
@@ -45,7 +85,7 @@ export default function Login() {
         <Text style={styles.buttonText}>Iniciar Sesión</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/auth/register")}>
+      <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
         <Text style={styles.registerText}>
           ¿No tienes cuenta?{" "}
           <Text style={{ color: "#d2691e", fontWeight: "bold" }}>
@@ -53,6 +93,12 @@ export default function Login() {
           </Text>
         </Text>
       </TouchableOpacity>
+
+      <StatusMessage
+        type={status.type}
+        message={status.message}
+        visible={status.visible}
+      />
     </View>
   );
 }
@@ -109,4 +155,3 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 });
-
