@@ -56,10 +56,10 @@ def register_user(
     try:
         # Create domain request
         domain_request = DomainRegisterRequest(
+            name =request.name,
             email=request.email,
             password=request.password
         )
-        
         # Execute use case
         use_case = RegisterUserUseCase(user_repository, auth_service)
         domain_response = use_case.execute(domain_request)
@@ -70,6 +70,7 @@ def register_user(
             message="User registered successfully",
             data=UserInfo(
                 user_id=getattr(domain_response, 'user_id', None),
+                name=getattr(domain_response, 'name', ''),
                 email=getattr(domain_response, 'email', None),
                 level=getattr(domain_response, 'level', 1),
                 xp=getattr(domain_response, 'xp', 0),
@@ -123,6 +124,7 @@ def login_user(
             expires_in=getattr(domain_response, 'expires_in', 3600),
             user_info=UserInfo(
                 user_id=domain_response.user_info.get("user_id", None) if hasattr(domain_response, 'user_info') else None,
+                name=domain_response.user_info.get("name", "") if hasattr(domain_response, 'user_info') else "",
                 email=domain_response.user_info.get("email", "") if hasattr(domain_response, 'user_info') else "",
                 level=domain_response.user_info.get("level", 1) if hasattr(domain_response, 'user_info') else 1,
                 xp=domain_response.user_info.get("xp", 0) if hasattr(domain_response, 'user_info') else 0,
@@ -173,6 +175,7 @@ def validate_token(
                 is_valid=True,
                 user_info=UserInfo(
                     user_id=domain_response.user_id,
+                    name=domain_response.name,
                     email=domain_response.email,
                     level=domain_response.level,
                     xp=domain_response.xp,
@@ -216,6 +219,7 @@ def get_user_profile(
             message="Profile retrieved successfully",
             data=UserInfo(
                 user_id=current_user["user_id"],
+                name=current_user.get("name", ""),
                 email=current_user["email"],
                 level=current_user["level"],
                 xp=current_user["xp"],
@@ -259,6 +263,7 @@ def get_user_by_id(
             message="User found",
             data=UserInfo(
                 user_id=domain_response.user_id,
+                name=domain_response.name,
                 email=domain_response.email,
                 level=domain_response.level,
                 xp=domain_response.xp,
@@ -306,6 +311,7 @@ def update_user_xp(
             message=f"User XP updated (+{xp_to_add})",
             data=UserInfo(
                 user_id=domain_response.user_id,
+                name=domain_response.name,
                 email=domain_response.email,
                 level=domain_response.level,
                 xp=domain_response.xp,

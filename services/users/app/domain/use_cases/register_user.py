@@ -11,6 +11,7 @@ from domain.exceptions.user_exceptions import (
 @dataclass
 class RegisterUserRequest:
     """DTO de entrada para el caso de uso RegisterUser"""
+    name: str
     email: str
     password: str
 
@@ -18,6 +19,7 @@ class RegisterUserRequest:
 class RegisterUserResponse:
     """DTO de salida para el caso de uso RegisterUser"""
     user_id: int
+    name: str
     email: str
     xp: int
     level: int
@@ -76,6 +78,7 @@ class RegisterUserUseCase:
         
         # PASO 5: Crear la entidad User
         user = User(
+            name=request.name,
             email=request.email.lower().strip(),  # Normalizar email
             password_hash=password_hash
             # xp=0, level=1, is_active=True se asignan por defecto en User
@@ -86,6 +89,7 @@ class RegisterUserUseCase:
         # PASO 7: Retornar respuesta estructurada (sin datos sensibles)
         return RegisterUserResponse(
             user_id=saved_user.id,
+            name=saved_user.name,
             email=saved_user.email,
             xp=saved_user.xp,
             level=saved_user.level,

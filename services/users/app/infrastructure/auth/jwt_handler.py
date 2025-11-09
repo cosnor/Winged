@@ -73,6 +73,7 @@ class JWTAuthService(AuthService):
         now = datetime.now(timezone.utc)
         payload = {
             "user_id": user.id,
+            "name": user.name,
             "email": user.email,
             "level": user.level,
             "xp": user.xp,

@@ -8,6 +8,7 @@ class User:
     """Entidad User - Contiene la lógica de negocio pura del usuario"""
     
     id: Optional[int] = None
+    name: str = ""
     email: str = ""
     password_hash: str = ""
     xp: int = 0

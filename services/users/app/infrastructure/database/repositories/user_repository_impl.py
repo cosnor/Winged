@@ -59,6 +59,7 @@ class UserRepositoryImpl(UserRepository):
                 
                 # Update fields
                 user_model.email = user.email
+                user_model.name = user.name
                 user_model.password_hash = user.password_hash
                 user_model.level = user.level
                 user_model.xp = user.xp
@@ -67,6 +68,7 @@ class UserRepositoryImpl(UserRepository):
             else:
                 # Create new user
                 user_model = UserModel(
+                    name=user.name,
                     email=user.email,
                     password_hash=user.password_hash,
                     level=user.level,
@@ -187,6 +189,7 @@ class UserRepositoryImpl(UserRepository):
         """Convert SQLAlchemy model to domain entity"""
         return User(
             id=model.id,
+            name=model.name,
             email=model.email,
             password_hash=model.password_hash,
             level=model.level,

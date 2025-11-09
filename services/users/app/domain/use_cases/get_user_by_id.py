@@ -14,6 +14,7 @@ class GetUserByIdRequest:
 class GetUserByIdResponse:
     """DTO de salida para buscar usuario por ID"""
     user_id: int
+    name: str
     email: str
     level: int
     xp: int
@@ -59,6 +60,7 @@ class GetUserByIdUseCase:
         # Retornar respuesta
         return GetUserByIdResponse(
             user_id=user.id,
+            name=user.name,
             email=user.email,
             level=user.level,
             xp=user.xp,
