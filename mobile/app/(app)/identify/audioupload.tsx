@@ -8,6 +8,7 @@ import {
 import AudioSelector from "../../../components/ui/AudioSelector";
 import BirdRegistry from "../../../components/ui/BirdRegistry";
 import { router } from "expo-router";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AudioUploadScreen() {
   // Datos de ejemplo - En una implementación real, esto vendría de una API o estado global
@@ -45,12 +46,12 @@ export default function AudioUploadScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Identifica tu Ave</Text>
         <Text style={styles.subtitle}>Sube un audio</Text>
         <AudioSelector />
-        <TouchableOpacity onPress={() => router.push("/identify")}>
+        <TouchableOpacity onPress={() => router.push("/identify/record")}>
             <Text style={styles.registerText}>
               ¿Prefieres grabar?{" "}
               <Text style={{ color: "#d2691e", fontWeight: "bold" }}>
@@ -62,7 +63,7 @@ export default function AudioUploadScreen() {
       <View style={styles.registryContainer}>
         <BirdRegistry birds={identifiedBirds} />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-    paddingTop: 80
+    paddingTop: 20
   },
   title: {
     fontSize: 26,

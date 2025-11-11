@@ -16,6 +16,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "axios": "^1.12.2",
     "expo": "54.0.23",
+    "expo-audio": "~1.0.14",
     "expo-av": "~16.0.7",
     "expo-document-picker": "~14.0.7",
     "expo-file-system": "~19.0.17",
