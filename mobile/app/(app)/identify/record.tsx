@@ -7,8 +7,9 @@ import {
 } from "react-native";
 import AudioRecorder from "../../../components/ui/AudioRecorder";
 import { router } from "expo-router";
-import InfoCard from "../../../components/cards/InfoCard";
 import BirdRegistry from "../../../components/ui/BirdRegistry";
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 export default function IdentifyScreen() {
   // Datos de ejemplo - En una implementación real, esto vendría de una API o estado global
@@ -28,11 +29,11 @@ export default function IdentifyScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}> 
       <View style={styles.header}>
         <Text style={styles.title}>Identifica tu Ave</Text>
         <Text style={styles.subtitle}>Graba un audio</Text>
-        <AudioRecorder />
+          <AudioRecorder />
         <TouchableOpacity onPress={() => router.push("/identify/audioupload")}>
           <Text style={styles.registerText}>
             ¿Tienes un audio existente?{" "}
@@ -44,8 +45,8 @@ export default function IdentifyScreen() {
       </View>
       <View style={styles.registryContainer}>
         <BirdRegistry birds={identifiedBirds} />
-      </View>
-    </View>
+      </View> 
+    </SafeAreaView>
   );
 }
 
@@ -58,7 +59,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-    paddingTop: 60
   },
   title: {
     fontSize: 26,

@@ -17,7 +17,7 @@ export default function BottomTabs() {
         }}
       />
       <Tabs.Screen
-        name="identify/index"
+        name="identify/record"
         options={{
           title: "Grabar",
           tabBarIcon: ({ color, size }) => <Ionicons name="mic" size={size} color={color} />
@@ -38,7 +38,7 @@ export default function BottomTabs() {
         }}
       />
       <Tabs.Screen
-        name="map/index"
+        name="map"
         options={{
           title: "Mapa",
           tabBarIcon: ({ color, size }) => <Ionicons name="map" size={size} color={color} />

@@ -4,6 +4,7 @@ import { useAvedex } from '../../../context/avedex-context';
 import AvedexCard from '../../../components/cards/AvedexCard';
 import { router, useNavigation } from 'expo-router';
 import * as Animatable from 'react-native-animatable';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AvedexScreen() {
   const { birds, loading, error, newBirdIds, markBirdsAsSeen } = useAvedex();
@@ -53,7 +54,7 @@ export default function AvedexScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}> 
       <Text style={styles.title}>Avedex de Carlos</Text>
       <ScrollView contentContainerStyle={styles.grid}>
         {birds.map((bird, index) => (
@@ -71,11 +72,12 @@ export default function AvedexScreen() {
           </Animatable.View>
         ))}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: '#fffaf0',
