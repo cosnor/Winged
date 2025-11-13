@@ -2,8 +2,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polygon } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { SpeciesDistribution } from '../../../../data/types';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 
 // Centro exacto del polígono principal
 const BARRANQUILLA_REGION = {
@@ -13,30 +15,8 @@ const BARRANQUILLA_REGION = {
   longitudeDelta: 0.01,
 };
 
-// Colores para distinguir las diferentes áreas de probabilidad
-const AREA_STYLES = {
-  high: {
-    fillColor: 'rgba(255, 0, 0, 0.2)',
-    strokeColor: '#ff0000',
-    strokeWidth: 2,
-  },
-  medium: {
-    fillColor: 'rgba(255, 165, 0, 0.2)',
-    strokeColor: '#ffa500',
-    strokeWidth: 2,
-  },
-  low: {
-    fillColor: 'rgba(255, 255, 0, 0.2)',
-    strokeColor: '#ffff00',
-    strokeWidth: 2,
-  },
-} as const;
 
-const getAreaStyle = (probability: number) => {
-  if (probability >= 0.7) return AREA_STYLES.high;
-  if (probability >= 0.3) return AREA_STYLES.medium;
-  return AREA_STYLES.low;
-};
+
 
 
 export default function NearbyScreen() {
@@ -44,6 +24,23 @@ export default function NearbyScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesDistribution | null>(null);
   const [probabilityText, setProbabilityText] = useState<string | null>(null);
+  const mapRef = useRef<MapView | null>(null);
+  const [outlineMode, setOutlineMode] = useState(false);
+
+  const toggleOutlineMode = () => setOutlineMode(!outlineMode);
+
+  const centerOnUser = () => {
+    if (location && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000); // 1 segundo de animación
+    } else {
+      Alert.alert('Ubicación no disponible', 'Asegúrate de haber otorgado permisos de ubicación. Si tiene permiso, espere unos momentos');
+    }
+  };
 
 
   // Simulated species data - this should be fetched from your API
@@ -218,12 +215,12 @@ export default function NearbyScreen() {
               "lon": -74.84463450450451
             },
             {
-              "lat": 11.012583495495491,
+              "lat": 11.01258349,
               "lon": -74.83563450450447
             },
             {
               "lat": 11.003583495495496,
-              "lon": -74.83563450450447
+              "lon": -74.8356347
             },
             {
               "lat": 11.003583495495496,
@@ -1219,92 +1216,144 @@ export default function NearbyScreen() {
     }
   ]);
     
-  useEffect(() => {
-    console.log("Selected Species:", selectedSpecies);
-    console.log("Species Data:", speciesData);
-  }, [selectedSpecies, speciesData]);
 
   useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Se necesita permiso para acceder a la ubicación');
-        return;
-      }
+  (async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
 
-      try {
-        const userLocation = await Location.getCurrentPositionAsync({});
-        setLocation(userLocation);
-      } catch (error) {
-        setErrorMsg('No se pudo obtener la ubicación');
-      }
-    })();
-  }, []);
+    if (status !== 'granted') {
+      setErrorMsg('Permiso de ubicación denegado');
+      return;
+    }
+
+    const currentLocation = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    setLocation(currentLocation);
+  })();
+}, []);
 
   const handleSelectSpecies = (species: SpeciesDistribution) => {
     setSelectedSpecies(species);
     const avg = species.areas.reduce((sum, a) => sum + a.probability, 0) / species.areas.length;
-    const sensitivity = 0.1; // ±10%
     const nearby = species.areas.filter(
-      (a) => Math.abs(a.probability - avg) <= sensitivity
+      (a) => Math.abs(a.probability - avg) 
     );
     const avgNearby =
       nearby.reduce((sum, a) => sum + a.probability, 0) / nearby.length || avg;
     setProbabilityText(`Probabilidad en zona: ${(avgNearby * 100).toFixed(1)}%`);
   };
 
+ 
+
+  const getAreaStyle = ( probability: number , outlineMode: boolean ) => {
+    const p = probability * 100; // pasa a porcentaje (0–100)
+    const fillColor = getColorForRange(p); // color por defecto (gris semi-transparente)
+
+    if (outlineMode){
+      return {
+        strokeColor: fillColor,
+        strokeWidth: 4,
+        fillColor: 'transparent',
+      };
+    } else {
+      return { 
+      strokeColor: '#00000055',
+      strokeWidth: 1,
+      fillColor: fillColor + '88',
+    };
+  };
+                 
+
+    
+  };
+
+  const getColorForRange = (p: number) => {
+    if (p < 10) return "#ffd057ff";       
+    else if (p < 20) return "#FAA307";
+    else if (p < 30) return "#F48C06";
+    else if (p < 40) return "#E85D04";
+    else if (p < 50) return"#DC2F02";
+    else if (p < 60) return"#D00000";  
+    else if (p < 70) return"#9D0208";
+    else if (p < 80) return "#6A040F";
+    else if (p < 90) return "#370617";  
+    else return "#03071E";
+  };
 
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>¡Encuentra aves cerca de ti!</Text>
       <View style={styles.mapContainer}>
-        <Text style={styles.subtitle}>Selecciona una especie para ver su distribución</Text>
+        <Text style={styles.subtitle}>Selecciona una especie para ver su distribución a 500 metros de ti</Text>
         <MapView
           style={styles.map}
-          initialRegion={BARRANQUILLA_REGION}>
-          {location && (
-            <Marker
-              coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              }}
-              title="Tú estás aquí"
-              pinColor="#d2691e"
-            />
-          )}
+          initialRegion={BARRANQUILLA_REGION}
+          showsUserLocation={true}
+          loadingEnabled={true}
+          ref={mapRef}
+            >
           {selectedSpecies && selectedSpecies.areas.map((area, areaIndex) => {
             return (
               <>
-                <Marker flat  coordinate={{
-                  latitude: area.polygon[0].lat , 
-                  longitude: area.polygon[0].lon
-                  }}
-                >
-                  {/* Ajustar para que quede con los colores */}
-                  <View style={styles.probabilityBox}>
-                    <Text style={{ color: '#000', fontWeight: 'bold' }}>
-                      {(area.probability * 100).toFixed(1)}%
-                    </Text>
-                  </View>
-                </Marker>
-
                 <Polygon
                   key={`${selectedSpecies.species}-${areaIndex}`}
                   coordinates={area.polygon.map(point => ({
                     latitude: point.lat,
                     longitude: point.lon,
                   }))}
-                  {...getAreaStyle(area.probability)}
-                  zIndex={1000}
+                  {...getAreaStyle(area.probability, outlineMode)}
+                  zIndex={1000 + areaIndex}
                   
                 />
               </>
             );
           })}
+          <TouchableOpacity style={styles.optionButton} onPress={centerOnUser}>
+            <Text style={styles.optionText}><Ionicons name="pin" size={20} color={"#ffffffff"} /></Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toggleButton} onPress={toggleOutlineMode}>
+            <Text style={styles.toggleButtonText}>
+              {outlineMode 
+              ? <Ionicons name="radio-button-off" size={20} color={"#ffffffff"} /> 
+              : <Ionicons name="radio-button-on" size={20} color={"#ffffffff"} /> }
+            </Text>
+          </TouchableOpacity>
+          
+
         </MapView>
+        
       </View>
     <Text style={styles.subtitle}>Especies en un radio de 500 metros de ti</Text>
+    <View style={styles.legendContainer}>
+            <Text style={styles.legendTitle}>Probabilidad</Text>
+            <View style={styles.legendBar}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <View
+                key={i}
+                style={{
+                  flex: 1,
+                  height: 15,
+                  backgroundColor: getColorForRange(i * 10),
+                }}
+              />
+            ))}
+          </View>
+          <View style={styles.legendLabels}>
+            <Text style={styles.legendText}>0%</Text>
+            <Text style={styles.legendText}>10%</Text>
+            <Text style={styles.legendText}>20%</Text>
+            <Text style={styles.legendText}>30%</Text>
+            <Text style={styles.legendText}>40%</Text>
+            <Text style={styles.legendText}>50%</Text>
+            <Text style={styles.legendText}>60%</Text>
+            <Text style={styles.legendText}>70%</Text>
+            <Text style={styles.legendText}>80%</Text>
+            <Text style={styles.legendText}>90%</Text>
+            <Text style={styles.legendText}>100%</Text>
+          </View>
+          </View>
       <ScrollView style={styles.speciesList}>
         {speciesData.map((species) => (
           <TouchableOpacity
@@ -1322,25 +1371,7 @@ export default function NearbyScreen() {
               <Text style={styles.probabilityText}>
                 Probabilidad máxima: {Math.round(species.max_probability * 100)}%
               </Text>
-              {selectedSpecies?.species === species.species && (
-                <Text style={styles.helpText}>
-                  Toca los polígonos en el mapa para ver la probabilidad en cada área
-                </Text>
-              )}
-              <View style={styles.legendContainer}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendColor, { backgroundColor: AREA_STYLES.high.strokeColor }]} />
-                  <Text style={styles.legendText}>Alta (≥70%)</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendColor, { backgroundColor: AREA_STYLES.medium.strokeColor }]} />
-                  <Text style={styles.legendText}>Media (30-69%)</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendColor, { backgroundColor: AREA_STYLES.low.strokeColor }]} />
-                  <Text style={styles.legendText}>Baja (≤29%)</Text>
-                </View>
-              </View>
+              
             </View>
           </TouchableOpacity>
         ))}
@@ -1361,26 +1392,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#d2691e',
     textAlign: 'center',
-    padding: 16,
+    padding: 10,
     paddingBottom: 4,
   },
   subtitle: {
     fontSize: 14,
+    fontStyle: 'italic',
     color: '#666',
-    textAlign: 'center',
-    paddingVertical: 10,
+    textAlign: 'justify',
+    paddingTop: 0,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
+
+
 
   },
   mapContainer: {
     height: Dimensions.get('window').height * 0.4, // Reducido para dejar más espacio a la lista
     overflow: 'hidden',
-    borderRadius: 20,
-    margin: 16,
+    margin: 0,
     marginBottom: 8, // Reducido para acercar la lista
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   map: {
@@ -1425,13 +1457,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
   },
-  legendContainer: {
-    marginTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1443,18 +1468,48 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 4,
   },
-  legendText: {
-    fontSize: 10,
-    color: '#666',
-  },
-  probabilityBox: {
+  optionButton: {
     position: 'absolute',
-    bottom: 30,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 228, 1)',
+    bottom: 50,
+    right: 10,
+    backgroundColor: '#d2691edc',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  optionText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  legendContainer: {
+        
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    elevation: 5,
+  },
+  legendTitle: { fontWeight: 'bold', fontSize: 12, marginBottom: 5 },
+  legendBar: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  legendLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 3,
+    paddingHorizontal: 5,
+  },
+  legendText: { fontSize: 8, color: '#333' },
+  toggleButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 10,
+    backgroundColor: '#d2691edc',
     padding: 10,
     borderRadius: 8,
-    borderColor: '#d2691e',
-  },  
+    elevation: 5,
+  },
+  toggleButtonText: { fontWeight: 'bold', color: '#333', fontSize: 12 },
 
 });

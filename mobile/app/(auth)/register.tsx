@@ -10,8 +10,7 @@ import { router } from "expo-router";
 import StatusMessage from "../../components/ui/StatusMessage";
 
 export default function Register() {
-  const [name, setName] = useState<string>("");
-  const [lastname, setLastname] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [passwordConfirm, setPasswordConfirm] = useState<string>("");
@@ -34,7 +33,7 @@ export default function Register() {
       // Reset any previous status message
       setStatus({ type: 'error', message: '', visible: false });
 
-      if (!name || !lastname || !email || !password) {
+      if (!username || !email || !password) {
         setStatus({
           type: 'error',
           message: 'Por favor completa todos los campos',
@@ -81,23 +80,15 @@ export default function Register() {
       <Text style={styles.title}>Crear Cuenta</Text>
       <Text style={styles.subtitle}>¡Únete a Winged!</Text>
 
-      <Text style={styles.label}>Nombre</Text>
+      <Text style={styles.label}>Nombre de usuario</Text>
       <TextInput
         style={styles.input}
         placeholder="Tu nombre"
         autoCapitalize="words"
-        value={name}
-        onChangeText={(text: string) => setName(text)}
+        value={username}
+        onChangeText={(text: string) => setUsername(text)}
       />
 
-      <Text style={styles.label}>Apellido</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Tu apellido"
-        autoCapitalize="words"
-        value={lastname}
-        onChangeText={(text: string) => setLastname(text)}
-      />
 
       <Text style={styles.label}>Correo</Text>
       <TextInput
