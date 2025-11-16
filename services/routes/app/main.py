@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="Achievements Service")
+app = FastAPI(title="Routes Service")
 
 @app.get("/")
 def read_root():

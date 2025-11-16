@@ -85,7 +85,7 @@ services:
       - achievements
     networks:
       - winged_network
-      - birdnet_shared_network
+      - microservice_birdnet-network
 
   maps:
     build: ./services/maps
@@ -181,9 +181,8 @@ services:
 networks:
   winged_network:
     driver: bridge
-  birdnet_shared_network:
+  microservice_birdnet-network:
     external: true
-    name: birdnet_shared_network
 
 volumes:
   postgres_data:

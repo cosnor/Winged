@@ -35,5 +35,6 @@ def get_current_user(
         "email": response.email,
         "level": response.level,
         "xp": response.xp,
-        "is_active": response.is_active
+        "is_active": response.is_active,
+        "created_at": response.created_at
     }

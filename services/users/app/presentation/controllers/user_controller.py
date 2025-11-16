@@ -229,7 +229,7 @@ def get_user_profile(
                 level=current_user["level"],
                 xp=current_user["xp"],
                 is_active=current_user["is_active"],
-                created_at=""
+                created_at=current_user.get("created_at", None)
             )
         )
         
