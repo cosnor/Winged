@@ -1,33 +1,70 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Polygon } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Polygon, LatLng, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useEffect, useState, useRef } from 'react';
 import { SpeciesDistribution } from '../../../../data/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import zonas from '../../../../data/zonas.json';
+import bird_zones from "../../../../data/bird_zones_test.json"; // Tu JSON con las aves
+import DropDownPicker from "react-native-dropdown-picker";
 
 
 // Centro exacto del polígono principal
-const BARRANQUILLA_REGION = {
+const BARRANQUILLA_REGION: Region = {
   latitude: 11.008083495495494,
   longitude: -74.84013450450449,
-  latitudeDelta: 0.01, // Zoom más cercano para ver mejor los polígonos
-  longitudeDelta: 0.01,
+  latitudeDelta: 0.5, // Zoom más cercano para ver mejor los polígonos
+  longitudeDelta: 0.5,
+};
+
+interface Feature {
+    type: string;
+    properties: { name: string };
+    geometry: { type: string; coordinates: number[][][] };
+  }
+
+type PolygonPoint = { lat: number; lon: number };
+
+type Area = {
+  polygon: PolygonPoint[];
+  probability: number;
 };
 
 
+const zones = [
+  { id: 0, nombre: "-"},
+  { id: 1, nombre: "Villa Campestre"},
+  { id: 2, nombre: "Mallorquín"},
+  { id: 3, nombre: "Malecón del Río"},
+  { id: 4, nombre: "Soledad"},
+  { id: 5, nombre: "Sur Oriente"},
+  { id: 6, nombre: "Sur"},
+  { id: 7, nombre: "Oriente"},
+  { id: 8, nombre: "Sur Occidente"},
+  { id: 9, nombre: "Centro"},
+  { id: 10, nombre: "Eduardo Santos"},
+  { id: 11, nombre: "Norte-Centro Histórico"},
+  { id: 12, nombre: "Riomar"},
+  { id: 13, nombre: "Norte"},
 
+];
 
 
 export default function ZonesScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [selectedSpecies, setSelectedSpecies] = useState<SpeciesDistribution | null>(null);
-  const [probabilityText, setProbabilityText] = useState<string | null>(null);
-  const mapRef = useRef<MapView | null>(null);
+  const [selectedSpecies, setSelectedSpecies] = useState<SpeciesDistribution[]>([]);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null);
+
+  const [userRegion, setUserRegion] = useState<Region | null>(null);
+  const [selectedArea, setSelectedArea] = useState<any | null >(null);
   const [outlineMode, setOutlineMode] = useState(false);
 
+  
   const toggleOutlineMode = () => setOutlineMode(!outlineMode);
+
+  
 
   const centerOnUser = () => {
     if (location && mapRef.current) {
@@ -1218,70 +1255,36 @@ export default function ZonesScreen() {
     
 
   useEffect(() => {
-  (async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.5,
+          longitudeDelta: 0.5,
+        });
+      }
+    })();
+  }, []);
 
-    if (status !== 'granted') {
-      setErrorMsg('Permiso de ubicación denegado');
-      return;
-    }
 
-    const currentLocation = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-
-    setLocation(currentLocation);
-  })();
-}, []);
-
-  const handleSelectSpecies = (species: SpeciesDistribution) => {
-    setSelectedSpecies(species);
-    const avg = species.areas.reduce((sum, a) => sum + a.probability, 0) / species.areas.length;
-    const nearby = species.areas.filter(
-      (a) => Math.abs(a.probability - avg) 
-    );
-    const avgNearby =
-      nearby.reduce((sum, a) => sum + a.probability, 0) / nearby.length || avg;
-    setProbabilityText(`Probabilidad en zona: ${(avgNearby * 100).toFixed(1)}%`);
+  // 🔹 Calcular color según probabilidad
+  const getColorByProbability = (p: number) => {
+    if (p >= 0.9) return "#1a9850";
+    if (p >= 0.7) return "#66bd63";
+    if (p >= 0.5) return "#fdae61";
+    if (p >= 0.4) return "#d73027";
+    return "#cccccc";
   };
 
- 
 
-  const getAreaStyle = ( probability: number , outlineMode: boolean ) => {
-    const p = probability * 100; // pasa a porcentaje (0–100)
-    const fillColor = getColorForRange(p); // color por defecto (gris semi-transparente)
+  const mapRef = useRef<MapView>(null);
 
-    if (outlineMode){
-      return {
-        strokeColor: fillColor,
-        strokeWidth: 4,
-        fillColor: 'transparent',
-      };
-    } else {
-      return { 
-      strokeColor: '#00000055',
-      strokeWidth: 1,
-      fillColor: fillColor + '88',
-    };
-  };
-                 
+  
 
-    
-  };
-
-  const getColorForRange = (p: number) => {
-    if (p < 10) return "#ffd057ff";       
-    else if (p < 20) return "#FAA307";
-    else if (p < 30) return "#F48C06";
-    else if (p < 40) return "#E85D04";
-    else if (p < 50) return"#DC2F02";
-    else if (p < 60) return"#D00000";  
-    else if (p < 70) return"#9D0208";
-    else if (p < 80) return "#6A040F";
-    else if (p < 90) return "#370617";  
-    else return "#03071E";
-  };
-
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1289,93 +1292,84 @@ export default function ZonesScreen() {
         <Text style={styles.subtitle}>Selecciona una especie para ver su distribución a 500 metros de ti</Text>
         <MapView
           style={styles.map}
-          initialRegion={BARRANQUILLA_REGION}
           showsUserLocation={true}
           loadingEnabled={true}
           ref={mapRef}
+          initialRegion={userRegion || BARRANQUILLA_REGION}
+          
             >
-          {selectedSpecies && selectedSpecies.areas.map((area, areaIndex) => {
-            return (
-              <>
+          {/* {selectedSpecies.map((sp, sIndex) =>
+            sp.areas
+              .filter((a: any) => a.probability >= 0.4)
+              .map((area: any, aIndex: number) => (
                 <Polygon
-                  key={`${selectedSpecies.species}-${areaIndex}`}
-                  coordinates={area.polygon.map(point => ({
-                    latitude: point.lat,
-                    longitude: point.lon,
+                  key={`${sp.species}-${aIndex}`}
+                  coordinates={area.polygon.map((p: any) => ({
+                    latitude: p.lat,
+                    longitude: p.lon,
                   }))}
-                  {...getAreaStyle(area.probability, outlineMode)}
-                  zIndex={1000 + areaIndex}
-                  
+                  fillColor={
+                    outlineMode
+                      ? "transparent"
+                      : `${getColorByProbability(area.probability)}80`
+                  }
+                  strokeColor={getColorByProbability(area.probability)}
+                  strokeWidth={2}
+                  tappable
+                  onPress={() => handlePolygonPress(sp, area)}
                 />
-              </>
-            );
-          })}
-          <TouchableOpacity style={styles.optionButton} onPress={centerOnUser}>
+              ))
+          )} */}
+          {zonas.features.map((feature: Feature, i: number) => {
+          const coords = feature.geometry.coordinates[0].map(([lon, lat]) => ({
+            latitude: lat,
+            longitude: lon,
+          }));
+
+          const fillColor = "#2196F380";
+
+          return (
+            <Polygon
+              key={i}
+              coordinates={coords}
+              strokeColor="#2E7D32"
+              fillColor={fillColor}
+              strokeWidth={2}
+              tappable
+              onPress={() => setSelectedZone(feature.properties.name)}
+            />
+          );
+        })}
+        <TouchableOpacity style={styles.optionButton} onPress={centerOnUser}>
             <Text style={styles.optionText}><Ionicons name="pin" size={20} color={"#ffffffff"} /></Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.toggleButton} onPress={toggleOutlineMode}>
-            <Text style={styles.toggleButtonText}>
-              {outlineMode 
-              ? <Ionicons name="radio-button-off" size={20} color={"#ffffffff"} /> 
-              : <Ionicons name="radio-button-on" size={20} color={"#ffffffff"} /> }
-            </Text>
-          </TouchableOpacity>
-          
-
         </MapView>
-        
-      </View>
-    <Text style={styles.subtitle}>Especies en un radio de 500 metros de ti</Text>
-    <View style={styles.legendContainer}>
-            <Text style={styles.legendTitle}>Probabilidad</Text>
-            <View style={styles.legendBar}>
-            {Array.from({ length: 10 }).map((_, i) => (
-              <View
-                key={i}
-                style={{
-                  flex: 1,
-                  height: 15,
-                  backgroundColor: getColorForRange(i * 10),
-                }}
-              />
-            ))}
-          </View>
-          <View style={styles.legendLabels}>
-            <Text style={styles.legendText}>0%</Text>
-            <Text style={styles.legendText}>10%</Text>
-            <Text style={styles.legendText}>20%</Text>
-            <Text style={styles.legendText}>30%</Text>
-            <Text style={styles.legendText}>40%</Text>
-            <Text style={styles.legendText}>50%</Text>
-            <Text style={styles.legendText}>60%</Text>
-            <Text style={styles.legendText}>70%</Text>
-            <Text style={styles.legendText}>80%</Text>
-            <Text style={styles.legendText}>90%</Text>
-            <Text style={styles.legendText}>100%</Text>
-          </View>
-          </View>
-      <ScrollView style={styles.speciesList}>
-        {speciesData.map((species) => (
-          <TouchableOpacity
-            key={species.species}
-            style={[
-              styles.speciesItem,
-              selectedSpecies?.species === species.species && styles.selectedSpecies
-            ]}
-            onPress={() => { setSelectedSpecies(selectedSpecies?.species === species.species ? null : species);
-                          handleSelectSpecies(species) }}
-                          
-          >
-            <View style={styles.speciesContent}>
-              <Text style={styles.speciesName}>{species.species}</Text>
-              <Text style={styles.probabilityText}>
-                Probabilidad máxima: {Math.round(species.max_probability * 100)}%
-              </Text>
-              
-            </View>
+        {selectedZone && (
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>📍 {selectedZone}</Text>
+          <TouchableOpacity onPress={() => setSelectedZone(null)}>
+            <Text style={styles.closeBtn}>Cerrar</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        </View>
+      )}
+      </View>
+      <View style={styles.speciesList}>
+        <Text style={{ marginBottom: 10 }}>Selecciona una zona:</Text>
+
+      <DropDownPicker
+        open={open}
+        value={value}
+        items={items}
+        setOpen={setOpen}
+        setValue={setValue}
+        setItems={setItems}
+        placeholder="Elige una zona"
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownContainer}
+        textStyle={styles.dropdownText}
+        listMode="SCROLLVIEW"
+      />
+      </View>
     </SafeAreaView>
   );
 }
@@ -1416,19 +1410,28 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   map: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
   },
-  speciesList: {
-    flexGrow: 1,
-    margin: 16,
-    backgroundColor: '#fff',
+  infoBox: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    padding: 10,
+    shadowColor: "#000",
     shadowOpacity: 0.2,
-    shadowRadius: 2.62,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  infoText: { fontSize: 16, fontWeight: "600", color: "#333" },
+  closeBtn: { color: "#2196F3", marginTop: 5, textAlign: "right" },
+  speciesList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 5,
+    
   },
   speciesItem: {
     padding: 12,
@@ -1511,5 +1514,29 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   toggleButtonText: { fontWeight: 'bold', color: '#333', fontSize: 12 },
-
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 10,
+    color: "#333",
+  },
+  dropdown: {
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    borderBottomColor: "#ff9a41ff",
+  },
+  dropdownContainer: {
+    borderColor: "#ff9a41ff",
+    backgroundColor: "#fffaf0",
+  },
+  dropdownText: {
+    fontSize: 15,
+    color: "#333",
+  },
+  selectedText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: "#ff7809ff",
+    fontWeight: "400",
+  },
 });
