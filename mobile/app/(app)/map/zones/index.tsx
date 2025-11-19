@@ -61,6 +61,13 @@ export default function ZonesScreen() {
   const [selectedArea, setSelectedArea] = useState<any | null >(null);
   const [outlineMode, setOutlineMode] = useState(false);
 
+  // DropDownPicker state (required props) BORRAR esto por si acaso
+  const [open, setOpen] = useState<boolean>(false);
+  const [value, setValue] = useState<number | null>(0);
+  const [items, setItems] = useState<Array<{label: string; value: number}>>(
+    zones.map((z) => ({ label: z.nombre, value: z.id }))
+  );
+
   
   const toggleOutlineMode = () => setOutlineMode(!outlineMode);
 
