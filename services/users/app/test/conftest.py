@@ -46,6 +46,7 @@ def sample_user():
     """Sample user entity for testing"""
     return User(
         id=1,
+        name="Test User",
         email="test@example.com",
         password_hash="hashed_password",
         xp=100,
@@ -60,6 +61,7 @@ def sample_user():
 def sample_user_dict():
     """Sample user data as dictionary"""
     return {
+        "name": "Test User",
         "user_id": 1,
         "email": "test@example.com",
         "level": 2,
@@ -85,6 +87,7 @@ def valid_jwt_token():
 def register_request_data():
     """Sample registration request data"""
     return {
+        "name": "New User",
         "email": "newuser@example.com",
         "password": "password123"
     }

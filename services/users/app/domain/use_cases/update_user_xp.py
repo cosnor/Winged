@@ -12,6 +12,7 @@ class UpdateUserXpRequest:
 @dataclass
 class UpdateUserXpResponse:
     user_id: int
+    name: str
     email: str
     level: int
     xp: int
@@ -41,6 +42,7 @@ class UpdateUserXpUseCase:
         
         return UpdateUserXpResponse(
             user_id=updated_user.id,
+            name=updated_user.name,
             email=updated_user.email,
             level=updated_user.level,
             xp=updated_user.xp,

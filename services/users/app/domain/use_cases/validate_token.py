@@ -19,6 +19,7 @@ class ValidateTokenResponse:
     """DTO de salida para el caso de uso ValidateToken"""
     is_valid: bool
     user_id: Optional[int] = None
+    name: Optional[str] = None
     email: Optional[str] = None
     level: Optional[int] = None
     xp: Optional[int] = None
@@ -91,6 +92,7 @@ class ValidateTokenUseCase:
             return ValidateTokenResponse(
                 is_valid=True,
                 user_id=user.id,
+                name=user.name,
                 email=user.email,
                 level=user.level,
                 xp=user.xp,

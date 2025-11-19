@@ -31,8 +31,10 @@ def get_current_user(
     
     return {
         "user_id": response.user_id,
+        "name": response.name,
         "email": response.email,
         "level": response.level,
         "xp": response.xp,
-        "is_active": response.is_active
+        "is_active": response.is_active,
+        "created_at": response.created_at
     }

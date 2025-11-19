@@ -1,26 +1,29 @@
-# Dockerfile para desarrollo con hot reload
+# Dockerfile para desarrollo con Expo + Hot Reload + QR
 FROM node:20-alpine
 
 # Instalar dependencias del sistema
-RUN apk add --no-cache git
+RUN apk add --no-cache git bash
 
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Instalar Expo CLI globalmente
-RUN npm install -g @expo/cli
+# Evitar problemas de permisos con node_modules
+RUN mkdir -p /app/node_modules && chmod -R 777 /app/node_modules
 
-# Copiar package.json y package-lock.json para aprovechar cache de Docker
+# Instalar Expo CLI globalmente
+RUN npm install -g expo-cli @expo/cli
+
+# Copiar package.json y package-lock.json
 COPY package*.json ./
 
-# Instalar dependencias de Node
+# Instalar dependencias del proyecto
 RUN npm install
 
-# Copiar el resto de los archivos del proyecto
+# Copiar el resto del código
 COPY . .
 
-# Exponer puertos necesarios para Expo
-EXPOSE 8081 19000 19001 19002
+# Puertos para Expo
+EXPOSE 19000 19001 19002 8081
 
-# Comando para iniciar Expo con hot reload habilitado
-CMD ["npx", "expo", "start", "--web", "--host", "localhost", "--port", "8081"]
+# Comando para iniciar Expo (MUESTRA QR)
+CMD ["npx", "expo", "start", "--tunnel"]

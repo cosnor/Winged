@@ -84,6 +84,7 @@ class AuthenticateUserUseCase:
             expires_in=60,  # 60 minutos por defecto
             user_info={
                 "user_id": user.id,
+                "name": user.name,
                 "email": user.email,
                 "level": user.level,
                 "xp": user.xp,

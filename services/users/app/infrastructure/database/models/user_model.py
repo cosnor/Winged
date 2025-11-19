@@ -25,6 +25,12 @@ class UserModel(Base):
         comment="ID único del usuario"
     )
     
+    name = Column(
+        String(128),
+        nullable=False,
+        comment="Nombre del usuario"
+    )
+    
     email = Column(
         String(255), 
         unique=True, 
@@ -90,6 +96,7 @@ class UserModel(Base):
         """
         return {
             "id": self.id,
+            "name": self.name,
             "email": self.email,
             "xp": self.xp,
             "level": self.level,
@@ -111,6 +118,7 @@ class UserModel(Base):
         """
         return cls(
             id=user_entity.id,
+            name=user_entity.name,
             email=user_entity.email,
             password_hash=user_entity.password_hash,
             xp=user_entity.xp,
@@ -132,6 +140,7 @@ class UserModel(Base):
         
         return User(
             id=self.id,
+            name=self.name,
             email=self.email,
             password_hash=self.password_hash,
             xp=self.xp,

@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import time
+import asyncio
+from typing import Dict
 import httpx
 import uvicorn
 import os
@@ -10,6 +13,12 @@ app = FastAPI(title="Sightings Service", version="1.0.0")
 
 # Configuration
 ACHIEVEMENTS_URL = os.getenv("ACHIEVEMENTS_URL", "http://achievements:8006")
+
+# Simple in-memory store to simulate persistence for created sightings.
+# Keyed by sighting id -> dict representing the sighting. Protected by an
+# asyncio.Lock to be safe for concurrent requests in the same process.
+_SIGHTINGS_DB: Dict[int, dict] = {}
+_SIGHTINGS_LOCK = asyncio.Lock()
 
 class SightingCreate(BaseModel):
     user_id: int
@@ -50,9 +59,12 @@ async def create_sighting(sighting: SightingCreate):
     if not sighting.timestamp:
         sighting.timestamp = datetime.utcnow()
     
-    # In a real implementation, this would save to database
-    # For now, we'll simulate a sighting ID
-    sighting_id = 12345
+    # In a real implementation, this would save to a database and return
+    # an auto-incremented integer ID. For this demo we generate a unique
+    # positive integer using the current time in milliseconds. This keeps
+    # the `id` field as int (compatible with SightingResponse) while being
+    # reasonably unique across rapid calls.
+    sighting_id = int(time.time() * 1000)
     
     # Notify achievements service
     achievements_unlocked = []
@@ -76,7 +88,29 @@ async def create_sighting(sighting: SightingCreate):
             )
             
             if response.status_code == 200:
-                achievements_unlocked = response.json()
+                # Normalize possible shapes from achievements service:
+                # - bare list: [...]
+                # - wrapper dict: {"success": True, "message": "...", "data": [...]}
+                # - single dict representing one achievement: {...}
+                # - empty or non-JSON -> treat as []
+                try:
+                    body = response.json()
+                except ValueError:
+                    body = None
+
+                if isinstance(body, dict) and "data" in body:
+                    norm = body.get("data") or []
+                    # if data is a single dict, wrap it
+                    if isinstance(norm, dict):
+                        norm = [norm]
+                    achievements_unlocked = norm
+                elif isinstance(body, list):
+                    achievements_unlocked = body
+                elif isinstance(body, dict):
+                    # single achievement -> wrap into list
+                    achievements_unlocked = [body]
+                else:
+                    achievements_unlocked = []
             else:
                 print(f"Failed to process achievements: {response.status_code}")
                 
@@ -84,53 +118,57 @@ async def create_sighting(sighting: SightingCreate):
         print(f"Error communicating with achievements service: {e}")
         # Don't fail the sighting creation if achievements service is down
     
-    return SightingResponse(
-        id=sighting_id,
-        user_id=sighting.user_id,
-        species_name=sighting.species_name,
-        common_name=sighting.common_name,
-        confidence_score=sighting.confidence_score,
-        location_lat=sighting.location_lat,
-        location_lon=sighting.location_lon,
-        timestamp=sighting.timestamp,
-        achievements_unlocked=achievements_unlocked
-    )
+    # Build the sighting object that we'll persist in the in-memory DB and
+    # return to the caller. Keep timestamp as a datetime object so Pydantic
+    # serializes it properly in responses.
+    sighting_obj = {
+        "id": sighting_id,
+        "user_id": sighting.user_id,
+        "species_name": sighting.species_name,
+        "common_name": sighting.common_name,
+        "confidence_score": sighting.confidence_score,
+        "location_lat": sighting.location_lat,
+        "location_lon": sighting.location_lon,
+        "timestamp": sighting.timestamp,
+        "status": "processed",
+        "achievements_unlocked": achievements_unlocked,
+    }
+
+    # Persist in memory
+    async with _SIGHTINGS_LOCK:
+        _SIGHTINGS_DB[sighting_id] = sighting_obj
+
+    return SightingResponse(**sighting_obj)
 
 @app.get("/sightings/{sighting_id}", response_model=SightingResponse)
 def get_sighting(sighting_id: int):
     """Get a specific sighting by ID"""
-    # In a real implementation, this would query the database
-    # For now, return a mock response
-    return SightingResponse(
-        id=sighting_id,
-        user_id=1,
-        species_name="Turdus ignobilis",
-        common_name="Black-billed Thrush",
-        confidence_score=0.92,
-        location_lat=10.4806,
-        location_lon=-75.5138,
-        timestamp=datetime.utcnow(),
-        status="processed"
-    )
+    # Lookup in our in-memory store.
+    sighting = _SIGHTINGS_DB.get(sighting_id)
+    if not sighting:
+        raise HTTPException(status_code=404, detail="Sighting not found")
+
+    return SightingResponse(**sighting)
 
 @app.get("/users/{user_id}/sightings")
 def get_user_sightings(user_id: int, limit: int = 50):
     """Get sightings for a specific user"""
-    # In a real implementation, this would query the database
-    # For now, return a mock response
-    return {
-        "user_id": user_id,
-        "sightings": [
-            {
-                "id": 1,
-                "species_name": "Turdus ignobilis",
-                "common_name": "Black-billed Thrush",
-                "confidence_score": 0.92,
-                "timestamp": datetime.utcnow().isoformat()
-            }
-        ],
-        "total": 1
-    }
+    # Collect sightings from the in-memory store for this user.
+    results = []
+    for s in _SIGHTINGS_DB.values():
+        if s.get("user_id") == user_id:
+            # Provide a lightweight representation for the listing
+            results.append({
+                "id": s["id"],
+                "species_name": s["species_name"],
+                "common_name": s.get("common_name"),
+                "confidence_score": s["confidence_score"],
+                "timestamp": s["timestamp"].isoformat() if isinstance(s["timestamp"], datetime) else s["timestamp"],
+            })
+            if len(results) >= limit:
+                break
+
+    return {"user_id": user_id, "sightings": results, "total": len(results)}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8002)

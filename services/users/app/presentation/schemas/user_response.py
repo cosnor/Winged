@@ -5,6 +5,7 @@ from datetime import datetime
 class UserInfo(BaseModel):
     """Información básica del usuario para responses"""
     user_id: int = Field(..., description="ID único del usuario")
+    name: str = Field(..., description="Nombre del usuario")
     email: str = Field(..., description="Email del usuario")
     level: int = Field(..., description="Nivel actual del usuario")
     xp: int = Field(..., description="Puntos de experiencia")
@@ -24,6 +25,7 @@ class RegisterUserResponse(BaseModel):
                 "message": "User registered successfully",
                 "data": {
                     "user_id": 1,
+                    "name": "Usuario Ejemplo",
                     "email": "usuario@ejemplo.com",
                     "level": 1,
                     "xp": 0,
@@ -52,6 +54,7 @@ class LoginUserResponse(BaseModel):
                 "expires_in": 60,
                 "user_info": {
                     "user_id": 1,
+                    "name": "Usuario Ejemplo",
                     "email": "usuario@ejemplo.com",
                     "level": 2,
                     "xp": 150,
@@ -75,6 +78,7 @@ class ValidateTokenResponse(BaseModel):
                 "is_valid": True,
                 "user_info": {
                     "user_id": 1,
+                    "name": "Usuario Ejemplo",
                     "email": "usuario@ejemplo.com",
                     "level": 2,
                     "xp": 150,
@@ -99,6 +103,7 @@ class GetUserProfileResponse(BaseModel):
                 "message": "Profile retrieved successfully",
                 "data": {
                     "user_id": 1,
+                    "name": "Usuario Ejemplo",
                     "email": "usuario@ejemplo.com",
                     "level": 3,
                     "xp": 250,
