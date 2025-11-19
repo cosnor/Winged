@@ -10,6 +10,7 @@ from .controllers import (
     sightings_router,
     achievements_router,
     maps_router,
+    ml_worker_router,
     health_router,
 )
 
@@ -18,5 +19,6 @@ app.include_router(users_router)
 app.include_router(sightings_router)
 app.include_router(achievements_router)
 app.include_router(maps_router)
+app.include_router(ml_worker_router)
 app.include_router(health_router)
 
