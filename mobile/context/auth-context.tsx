@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import { API_BASE_URL } from "../config/environment";
 
 // 1. Definir el tipo de usuario
 type User = {
@@ -31,14 +32,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (email: string, password: string) => {
         setLoading(true);
         try {
-        // ⚡ Aquí iría tu lógica de login (ej: llamada API backend)
-        // simulamos login
-        const fakeUser = { id: "1", name: "Demo User", email };
-        setUser(fakeUser);
+            // ⚡ Llamada real al backend
+            console.log('🔐 Intentando login en:', `${API_BASE_URL}/users/login`);
+            
+            const response = await fetch(`${API_BASE_URL}/users/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                console.log('✅ Login exitoso:', data.user);
+                setUser(data.user);
+            } else {
+                console.error('❌ Login fallido:', data.message);
+                throw new Error(data.message || 'Login failed');
+            }
         } catch (error) {
-        console.error("Error in login:", error);
+            console.error("❌ Error in login:", error);
+            // En desarrollo, puedes usar un usuario fake si el backend no está disponible
+            if (__DEV__) {
+                console.log('⚠️ Usando usuario de desarrollo');
+                const fakeUser = { id: "1", name: "Demo User", email };
+                setUser(fakeUser);
+            }
+            throw error;
         } finally {
-        setLoading(false);
+            setLoading(false);
         }
     };
 

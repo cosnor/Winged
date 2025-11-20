@@ -16,6 +16,7 @@ services:
       - MAPS_URL=http://maps:8004
       - ROUTES_URL=http://routes:8005
       - ACHIEVEMENTS_URL=http://achievements:8006
+      - BIRDNET_WS_URL=ws://host.docker.internal:8010/ws
     depends_on:
       db:
         condition: service_healthy  # ← Esperar que DB esté ready
