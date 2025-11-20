@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  backend: # BFF / Gateway
+  backend:
     build: ./backend
     container_name: backend
     ports:
@@ -18,7 +18,7 @@ services:
       - ACHIEVEMENTS_URL=http://achievements:8006
     depends_on:
       db:
-        condition: service_healthy  # ← Esperar que DB esté ready
+        condition: service_healthy
       users:
         condition: service_started
     networks:
@@ -26,23 +26,22 @@ services:
 
   users:
     build: ./services/users
-    container_name: users  # ← AGREGAR container_name
+    container_name: users
     ports:
       - "8001:8001"
     volumes:
       - ./services/users/app:/code/app:Z
       - ./services/users/requirements.txt:/code/requirements.txt:Z
     environment:
-      # ✅ CORREGIR: usar 'db' que es el nombre real del servicio
-      - DB_HOST=db                    # ← Era postgres_db, pero el servicio se llama 'db'
+      - DB_HOST=db
       - DB_PORT=5432
-      - DB_NAME=winged_users          # ← Esta DB debe existir
+      - DB_NAME=winged_users
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - JWT_SECRET_KEY=dev-secret-key-change-in-production
     depends_on:
       db:
-        condition: service_healthy    # ← Esperar que PostgreSQL esté ready
+        condition: service_healthy
     networks:
       - winged_network
 
@@ -71,15 +70,13 @@ services:
       - ./services/ml_worker/app:/code/app:Z
       - ./services/ml_worker/requirements.txt:/code/requirements.txt:Z
     environment:
-      # Service URLs for integration
       - ACHIEVEMENTS_SERVICE_URL=http://achievements:8006
       - SIGHTINGS_SERVICE_URL=http://sightings:8002
       - BIRDNET_API_URL=http://host.docker.internal:8000
-      
-      # BirdNET Microservice MongoDB Integration
+
       - BIRDNET_MONGODB_URL=mongodb://admin:birdnet123@birdnet-mongodb:27017/birdnet_db?authSource=admin
       - BIRDNET_DATABASE_NAME=birdnet_db
-      - BIRDNET_SESSIONS_COLLECTION=sessions  
+      - BIRDNET_SESSIONS_COLLECTION=sessions
       - BIRDNET_DETECTIONS_COLLECTION=detections
     depends_on:
       - achievements
@@ -135,26 +132,6 @@ services:
     networks:
       - winged_network
 
-  mobile:
-    build: ./mobile
-    container_name: mobile_app
-    ports:
-      - "8082:8081"
-      - "19000:19000"
-      - "19001:19001"
-    volumes:
-      - ./mobile:/app:Z
-    environment:
-      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
-      - REACT_NATIVE_PACKAGER_HOSTNAME=host.docker.internal
-      - API_BASE_URL=http://backend:8000
-    depends_on:
-      - backend
-    networks:
-      - winged_network
-    stdin_open: true
-    tty: true
-
   db:
     image: postgis/postgis:16-3.4
     container_name: postgres_db
@@ -162,12 +139,12 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres  # ← DB por defecto, pero necesitas crear winged_users
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d:Z  # ← Scripts de inicialización
+      - ./database/init:/docker-entrypoint-initdb.d:Z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -176,7 +153,6 @@ services:
     networks:
       - winged_network
 
-# ✅ AGREGAR NETWORK (estaba faltando!)
 networks:
   winged_network:
     driver: bridge
