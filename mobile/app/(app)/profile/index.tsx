@@ -9,9 +9,9 @@ export default function ProfileScreen() {
   const user = {
     name: "Camila Osorno",
     email: "camila.osorno@example.com",
-    birdsCollected: 42,
+    birdsCollected: 7,
     lastSighting: "Tucán Amazónico",
-    streakDays: 12,
+    streakDays: 7,
     avatar: "https://ralfvanveen.com/wp-content/uploads/2021/06/Placeholder-_-Begrippenlijst.svg" // puedes usar cualquier imagen o avatar generado
   };
 

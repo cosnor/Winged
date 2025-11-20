@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { theme } from "../../styles/theme";
 
-export default function HomeScreen({ userName = "Alberto" }) {
+export default function HomeScreen({ userName = "Camila" }) {
 
     const [streak, setStreak] = useState(7);
     const [dailyFact, setDailyFact] = useState("");
@@ -28,7 +28,7 @@ export default function HomeScreen({ userName = "Alberto" }) {
                         <Text style={styles.avatarText}>{userName?.charAt(0).toUpperCase()}</Text>
                     </View>
                     <View style={styles.headerTexts}>
-                        <Text style={styles.welcome}>Bienvenido, {userName}</Text>
+                        <Text style={styles.welcome}>Bienvenida, {userName}</Text>
                         <Text style={styles.date}>{dateStr}</Text>
                     </View>
                 </View>
