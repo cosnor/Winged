@@ -106,7 +106,65 @@ async def signup_user(request: UserSignupRequest):
             raise HTTPException(status_code=503, detail="Users service unavailable")
 
     if reg.status_code != 201:
-        raise HTTPException(status_code=reg.status_code, detail=reg.text)
+        # Translate and raise user-facing Spanish messages for known errors
+        try:
+            body = reg.json() if reg.text else {}
+        except Exception:
+            body = {}
+        msg = None
+        if isinstance(body, dict):
+            msg = body.get("detail") or body.get("message") or body.get("error")
+        elif isinstance(body, list):
+            try:
+                msg = "; ".join(str(x) for x in body)
+            except Exception:
+                msg = str(body)
+        else:
+            msg = str(body) if body is not None else None
+
+        # ensure we have a string to analyze
+        # Special-case: pydantic / FastAPI validation errors (422) often come as
+        # {"detail": [{"loc": ["body","email"], "msg": "...", "type": "value_error.email"}, ...]}
+        # Map common email validation to a friendly Spanish message.
+        if reg.status_code == 422:
+            detail = None
+            if isinstance(body, dict):
+                detail = body.get("detail")
+            if isinstance(detail, list):
+                for err in detail:
+                    try:
+                        loc = err.get("loc", []) if isinstance(err, dict) else []
+                        msg_field = err.get("msg", "") if isinstance(err, dict) else str(err)
+                        err_type = err.get("type", "") if isinstance(err, dict) else ""
+                        loc_text = " ".join(str(x) for x in loc).lower()
+                        msg_text = str(msg_field).lower()
+                        if "email" in loc_text or "value_error.email" in err_type or "valid email" in msg_text or "@-sign" in msg_text:
+                            raise HTTPException(status_code=422, detail="El texto no es un email válido")
+                    except HTTPException:
+                        raise
+                    except Exception:
+                        # ignore and continue scanning other errors
+                        continue
+            # If no specific mapping matched, fall back to string coercion below
+        raw_text = msg if isinstance(msg, str) else (reg.text if isinstance(reg.text, str) else str(msg or ""))
+        text = raw_text.lower()
+        if reg.status_code == 400:
+            if "name" in text or "invalid name" in text:
+                raise HTTPException(status_code=400, detail="Nombre inválido. Verifica el formato del nombre.")
+            # Map specific password validation messages
+            if "at least 8 characters" in text or "8 characters long" in text:
+                raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+            if "uppercase letter" in text or "one uppercase" in text:
+                raise HTTPException(status_code=400, detail="La contraseña debe contener al menos una letra mayúscula")
+            if "must contain at least one number" in text or "one digit" in text or "one number" in text:
+                raise HTTPException(status_code=400, detail="La contraseña debe contener al menos un número")
+            if "password" in text or "invalid password" in text:
+                raise HTTPException(status_code=400, detail="Contraseña inválida. Debe tener al menos 8 caracteres, una mayúscula y un número")
+            raise HTTPException(status_code=400, detail="Solicitud inválida. Verifica los datos enviados.")
+        if reg.status_code == 409:
+            raise HTTPException(status_code=409, detail="El correo ya está registrado.")
+        # Fallback: forward original text
+        raise HTTPException(status_code=reg.status_code, detail=raw_text)
 
     # login
     async with httpx.AsyncClient() as client:
@@ -119,7 +177,48 @@ async def signup_user(request: UserSignupRequest):
             raise HTTPException(status_code=503, detail="Users service unavailable")
 
     if login.status_code != 200:
-        return reg.json()
+        # Attempt to translate common login errors
+        try:
+            body = login.json() if login.text else {}
+        except Exception:
+            body = {}
+        msg = None
+        if isinstance(body, dict):
+            msg = body.get("detail") or body.get("message") or body.get("error")
+        elif isinstance(body, list):
+            try:
+                msg = "; ".join(str(x) for x in body)
+            except Exception:
+                msg = str(body)
+        else:
+            msg = str(body) if body is not None else None
+
+        # Special-case: map pydantic validation errors for email to Spanish
+        if login.status_code == 422:
+            detail = None
+            if isinstance(body, dict):
+                detail = body.get("detail")
+            if isinstance(detail, list):
+                for err in detail:
+                    try:
+                        loc = err.get("loc", []) if isinstance(err, dict) else []
+                        msg_field = err.get("msg", "") if isinstance(err, dict) else str(err)
+                        err_type = err.get("type", "") if isinstance(err, dict) else ""
+                        loc_text = " ".join(str(x) for x in loc).lower()
+                        msg_text = str(msg_field).lower()
+                        if "email" in loc_text or "value_error.email" in err_type or "valid email" in msg_text or "@-sign" in msg_text:
+                            raise HTTPException(status_code=422, detail="El texto no es un email válido")
+                    except HTTPException:
+                        raise
+                    except Exception:
+                        continue
+        raw_text = msg if isinstance(msg, str) else (login.text if isinstance(login.text, str) else str(msg or ""))
+        text = raw_text.lower()
+        if login.status_code == 401:
+            raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
+        if login.status_code == 400:
+            raise HTTPException(status_code=400, detail="Solicitud inválida. Verifica los datos.")
+        raise HTTPException(status_code=login.status_code, detail=raw_text)
 
     return {
         "success": True,
@@ -136,7 +235,27 @@ async def login_user(request: UserLoginRequest):
         try:
             resp = await client.post(f"{USERS_URL}/login", json={"email": request.email, "password": request.password})
         except httpx.RequestError:
-            raise HTTPException(status_code=503, detail="Users service unavailable")
+            raise HTTPException(status_code=503, detail="Servicio de usuarios no disponible. Intenta de nuevo más tarde.")
+
+    # Translate common errors to Spanish for the gateway response
+    if resp.status_code != 200:
+        try:
+            body = resp.json() if resp.text else {}
+        except Exception:
+            body = {}
+        msg = None
+        if isinstance(body, dict):
+            msg = body.get("detail") or body.get("message") or body.get("error")
+        text = (msg or resp.text or "").lower()
+        if resp.status_code == 401:
+            raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
+        if resp.status_code == 400:
+            raise HTTPException(status_code=400, detail="Solicitud inválida. Verifica los datos enviados.")
+        if resp.status_code == 404:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+        if resp.status_code == 409:
+            raise HTTPException(status_code=409, detail="Conflicto: datos en uso.")
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
     return resp.json()
 

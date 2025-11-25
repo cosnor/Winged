@@ -9,8 +9,13 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-audio"
+      "expo-audio",
+      "expo-font",
+      "expo-asset"
     ],
+    "extra": {
+      "API_BASE_URL": "https://sabrina-blizzardly-nonequably.ngrok-free.dev"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

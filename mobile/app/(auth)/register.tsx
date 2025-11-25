@@ -6,6 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import StatusMessage from "../../components/ui/StatusMessage";
 
@@ -34,44 +36,55 @@ export default function Register() {
       setStatus({ type: 'error', message: '', visible: false });
 
       if (!username || !email || !password) {
-        setStatus({
-          type: 'error',
-          message: 'Por favor completa todos los campos',
-          visible: true
-        });
+        setStatus({ type: 'error', message: 'Por favor completa todos los campos', visible: true });
         return;
       }
 
       if (!validatePasswords()) {
-        setStatus({
-          type: 'error',
-          message: 'Las contraseñas no coinciden',
-          visible: true
-        });
+        setStatus({ type: 'error', message: 'Las contraseñas no coinciden', visible: true });
         return;
       }
 
-      // Aquí iría la lógica de creación de cuenta (Firebase, API, etc.)
-      // Simularemos una operación asíncrona
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setStatus({
-        type: 'success',
-        message: 'Tu cuenta ha sido creada exitosamente',
-        visible: true
+      const API_BASE_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL;
+
+      const resp = await fetch(`${API_BASE_URL}/users/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: username, email, password }),
       });
 
-      // Redirigir después de un pequeño delay para que el usuario vea el mensaje
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
-      
+      if (!resp.ok) {
+        let message = `Error ${resp.status}`;
+        try {
+          const json = await resp.json();
+          if (json && (json.detail || json.message || json.error)) {
+            message = json.detail || json.message || json.error;
+          } else if (json && Object.keys(json).length) {
+            message = JSON.stringify(json);
+          }
+        } catch (e) {
+          const text = await resp.text();
+          if (text) message = text;
+        }
+        setStatus({ type: 'error', message, visible: true });
+        return;
+      }
+
+      const body = await resp.json();
+      // The gateway performs login after signup and should return tokens
+      const token = body.access_token || body.token || (body.data && body.data.access_token);
+      if (!token) {
+        setStatus({ type: 'error', message: 'Respuesta inválida del servidor', visible: true });
+        return;
+      }
+
+      await AsyncStorage.setItem('ACCESS_TOKEN', token);
+      setStatus({ type: 'success', message: 'Cuenta creada. Bienvenido!', visible: true });
+      // Navigate to main app since backend auto-logged the user
+      setTimeout(() => router.push('/(app)'), 400);
     } catch (error) {
-      setStatus({
-        type: 'error',
-        message: 'No se pudo crear la cuenta. Por favor intenta de nuevo.',
-        visible: true
-      });
+      console.error('Signup error:', error);
+      setStatus({ type: 'error', message: 'Error de red al registrarse', visible: true });
     }
   };
 

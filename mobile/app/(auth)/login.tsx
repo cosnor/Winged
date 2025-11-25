@@ -6,6 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import StatusMessage from "../../components/ui/StatusMessage";
 
@@ -30,30 +32,57 @@ export default function Login() {
         setStatus({
           type: 'error',
           message: 'Por favor ingresa tu correo y contraseña',
-          visible: true
+          visible: true,
         });
         return;
       }
 
-      // Aquí iría la lógica de autenticación (Firebase, API, etc.)
-      // Simularemos una operación asíncrona
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setStatus({
-        type: 'success',
-        message: '¡Bienvenido de vuelta!',
-        visible: true
+      const API_BASE_URL =
+        (Constants.expoConfig as any)?.extra?.API_BASE_URL;
+
+      const resp = await fetch(`${API_BASE_URL}/users/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      // Redirigir después de un pequeño delay
-      setTimeout(() => {
-         router.push("/(app)");
-      }, 1000);    } catch (error) {
-      setStatus({
-        type: 'error',
-        message: 'Error al iniciar sesión. Verifica tus credenciales.',
-        visible: true
-      });
+      if (!resp.ok) {
+        // Prefer the 'detail' field from gateway JSON responses so the UI
+        // shows a concise, user-friendly message (already localized).
+        let message = `Error ${resp.status}`;
+        try {
+          const json = await resp.json();
+          if (json && (json.detail || json.message || json.error)) {
+            message = json.detail || json.message || json.error;
+          } else if (json && Object.keys(json).length) {
+            message = JSON.stringify(json);
+          }
+        } catch (e) {
+          // fallback to plain text
+          const text = await resp.text();
+          if (text) message = text;
+        }
+
+        setStatus({ type: 'error', message, visible: true });
+        return;
+      }
+
+      const body = await resp.json();
+      // Try common shapes for token
+      const token = body.access_token || body.token || (body.data && body.data.access_token);
+      if (!token) {
+        setStatus({ type: 'error', message: 'Respuesta inválida del servidor', visible: true });
+        return;
+      }
+
+      // Persist token
+      await AsyncStorage.setItem('ACCESS_TOKEN', token);
+
+      setStatus({ type: 'success', message: '¡Bienvenido!', visible: true });
+      setTimeout(() => router.push('/(app)'), 400);
+    } catch (error) {
+      console.error('Login error:', error);
+      setStatus({ type: 'error', message: 'Error de red al iniciar sesión', visible: true });
     }
   };
 

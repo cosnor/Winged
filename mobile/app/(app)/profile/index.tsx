@@ -1,34 +1,96 @@
-import React from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme"; // Usa tu tema global si ya lo tienes
 import { SafeAreaView } from 'react-native-safe-area-context';  
 
 export default function ProfileScreen() {
-  // 🔹 Datos de ejemplo (luego los puedes reemplazar con datos reales del usuario)
-  const user = {
-    name: "Camila Osorno",
-    email: "camila.osorno@example.com",
-    birdsCollected: 42,
-    lastSighting: "Tucán Amazónico",
-    streakDays: 12,
-    avatar: "https://ralfvanveen.com/wp-content/uploads/2021/06/Placeholder-_-Begrippenlijst.svg" // puedes usar cualquier imagen o avatar generado
-  };
+  const [user, setUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadProfile = async () => {
+      setLoading(true);
+      try {
+        const API_BASE_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL;
+        const token = await AsyncStorage.getItem("ACCESS_TOKEN");
+        if (!token) {
+          if (mounted) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const resp = await fetch(`${API_BASE_URL}/users/me`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!resp.ok) {
+          // Could show a message or handle 401 -> logout. For now just log and clear user
+          console.warn("Failed to fetch profile", resp.status);
+          if (mounted) setUser(null);
+          return;
+        }
+
+        const body = await resp.json();
+        // The gateway returns either { data: {...} } or the object itself
+        const data = (body && body.data) ? body.data : body;
+
+        if (mounted) {
+          setUser({
+            name: data.name || data.full_name || "Usuario",
+            email: data.email || "",
+            birdsCollected: 0,
+            lastSighting: "-",
+            streakDays: data.xp || 0,
+            avatar: "https://ralfvanveen.com/wp-content/uploads/2021/06/Placeholder-_-Begrippenlijst.svg",
+          });
+        }
+      } catch (e) {
+        console.error("Error loading profile:", e);
+        if (mounted) setUser(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadProfile();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* 🦜 Avatar y nombre */}
       <View style={styles.header}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        ) : user ? (
+          <>
+            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            <Text style={styles.name}>{user.name}</Text>
+            <Text style={styles.email}>{user.email}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.name}>No autenticado</Text>
+            <Text style={styles.email}>Inicia sesión para ver tu perfil</Text>
+          </>
+        )}
       </View>
 
       {/* 📊 Estadísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Ionicons name="egg-outline" size={28} color={theme.colors.primary} />
-          <Text style={styles.statNumber}>{user.birdsCollected}</Text>
+          <Text style={styles.statNumber}>{user?.birdsCollected ?? 0}</Text>
           <Text style={styles.statLabel}>Aves Coleccionadas</Text>
         </View>
 
@@ -38,13 +100,13 @@ export default function ProfileScreen() {
             size={28}
             color={theme.colors.secondary}
           />
-          <Text style={styles.statNumber}>{user.lastSighting}</Text>
+          <Text style={styles.statNumber}>{user?.lastSighting ?? "-"}</Text>
           <Text style={styles.statLabel}>Último Avistamiento</Text>
         </View>
 
         <View style={styles.statCard}>
           <Ionicons name="flame-outline" size={28} color="#F97316" />
-          <Text style={styles.statNumber}>{user.streakDays} días</Text>
+          <Text style={styles.statNumber}>{user?.streakDays ?? 0} días</Text>
           <Text style={styles.statLabel}>Racha Activa</Text>
         </View>
       </View>
