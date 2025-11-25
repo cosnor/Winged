@@ -120,8 +120,15 @@ export default function AudioRecorder({ onDetectionsComplete }: AudioRecorderPro
       console.log("Grabación guardada en:", audioUrl);
 
       if (audioUrl && connected) {
+        // Normalizar la URL: agregar file:// si no tiene esquema
+        const normalizedUrl = audioUrl.startsWith('file://') 
+          ? audioUrl 
+          : `file://${audioUrl}`;
+        
+        console.log("📁 URL normalizada:", normalizedUrl);
+
         // Convertir el audio a base64 para enviarlo
-        const base64Audio = await FileSystem.readAsStringAsync(audioUrl, {
+        const base64Audio = await FileSystem.readAsStringAsync(normalizedUrl, {
           encoding: 'base64'
         });
 
