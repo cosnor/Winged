@@ -38,7 +38,7 @@ export default function Login() {
       }
 
       const API_BASE_URL =
-        (Constants.expoConfig as any)?.extra?.API_BASE_URL || "https://sabrina-blizzardly-nonequably.ngrok-free.dev";
+        (Constants.expoConfig as any)?.extra?.API_BASE_URL;
 
       const resp = await fetch(`${API_BASE_URL}/users/login`, {
         method: "POST",

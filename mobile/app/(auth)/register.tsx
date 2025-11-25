@@ -45,7 +45,7 @@ export default function Register() {
         return;
       }
 
-      const API_BASE_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL || 'http://192.168.1.22:8007';
+      const API_BASE_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL;
 
       const resp = await fetch(`${API_BASE_URL}/users/signup`, {
         method: 'POST',

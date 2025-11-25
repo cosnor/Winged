@@ -10,7 +10,8 @@ from domain.exceptions.user_exceptions import (
     InvalidCredentialsError,
     InvalidNameError,
     InvalidTokenError,
-    UserNotFoundError
+    UserNotFoundError,
+    InvalidPasswordError
 )
 
 # Infrastructure imports
@@ -91,7 +92,13 @@ def register_user(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e)
         )
+    except InvalidPasswordError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
+        print(f"Unexpected error during registration: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"

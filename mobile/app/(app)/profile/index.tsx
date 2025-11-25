@@ -15,7 +15,7 @@ export default function ProfileScreen() {
     const loadProfile = async () => {
       setLoading(true);
       try {
-        const API_BASE_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL || "https://sabrina-blizzardly-nonequably.ngrok-free.dev";
+        const API_BASE_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL;
         const token = await AsyncStorage.getItem("ACCESS_TOKEN");
         if (!token) {
           if (mounted) {

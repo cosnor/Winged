@@ -151,6 +151,15 @@ async def signup_user(request: UserSignupRequest):
         if reg.status_code == 400:
             if "name" in text or "invalid name" in text:
                 raise HTTPException(status_code=400, detail="Nombre inválido. Verifica el formato del nombre.")
+            # Map specific password validation messages
+            if "at least 8 characters" in text or "8 characters long" in text:
+                raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+            if "uppercase letter" in text or "one uppercase" in text:
+                raise HTTPException(status_code=400, detail="La contraseña debe contener al menos una letra mayúscula")
+            if "must contain at least one number" in text or "one digit" in text or "one number" in text:
+                raise HTTPException(status_code=400, detail="La contraseña debe contener al menos un número")
+            if "password" in text or "invalid password" in text:
+                raise HTTPException(status_code=400, detail="Contraseña inválida. Debe tener al menos 8 caracteres, una mayúscula y un número")
             raise HTTPException(status_code=400, detail="Solicitud inválida. Verifica los datos enviados.")
         if reg.status_code == 409:
             raise HTTPException(status_code=409, detail="El correo ya está registrado.")
