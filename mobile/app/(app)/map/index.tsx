@@ -93,6 +93,11 @@ export default function MapScreen() {
           <Text style={styles.optionText}>Rutas de Aves</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.constructionContainer}>
+        <Text style={styles.constructionText}>🚧 Módulo en construcción — nuevas funciones pronto disponibles.</Text>
+      </View>
+      
     </View>
   );
 }
@@ -133,5 +138,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  constructionContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 10,
+    backgroundColor: '#fff4e6',
+    borderWidth: 1,
+    borderColor: '#f0c7a3',
+  },
+  constructionText: {
+    color: '#8a4b00',
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -9,24 +9,11 @@ import AudioRecorder from "../../../components/ui/AudioRecorder";
 import { router } from "expo-router";
 import BirdRegistry from "../../../components/ui/BirdRegistry";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBirdDetections } from "../../../context/bird-detection-context";
 
 
 export default function IdentifyScreen() {
-  // Datos de ejemplo - En una implementación real, esto vendría de una API o estado global
-  const identifiedBirds = [
-    {
-      id: '1',
-      commonName: 'Colibrí Ruby',
-      scientificName: 'Chrysolampis mosquitus',
-      imageUrl: 'https://static.inaturalist.org/photos/75880844/large.jpg',
-    },
-    {
-      id: '2',
-      commonName: 'Azulejo',
-      scientificName: 'Thraupis episcopus',
-      imageUrl: 'https://static.inaturalist.org/photos/75880843/large.jpg',
-    }
-  ];
+  const { identifiedBirds } = useBirdDetections();
 
   return (
     <SafeAreaView style={styles.container}> 

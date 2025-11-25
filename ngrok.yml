@@ -1,0 +1,6 @@
+version: "2"
+authtoken: 35kW0mljtF5YDtMGee4dBX3JxWM_fnNjPohThdwRgwgksMou
+tunnels:
+  websocket:
+    proto: http
+    addr: 8010

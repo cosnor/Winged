@@ -1376,6 +1376,11 @@ export default function ZonesScreen() {
         textStyle={styles.dropdownText}
         listMode="SCROLLVIEW"
       />
+      
+      <View style={styles.constructionContainer}>
+        <Text style={styles.constructionText}>🚧 Módulo en construcción — nuevas funciones próximamente.</Text>
+      </View>
+      
       </View>
     </SafeAreaView>
   );
@@ -1538,12 +1543,28 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 15,
-    color: "#333",
+    color: '#333',
   },
   selectedText: {
     marginTop: 20,
     fontSize: 16,
     color: "#ff7809ff",
     fontWeight: "400",
+  },
+  constructionContainer: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff4e6',
+    borderWidth: 1,
+    borderColor: '#f0c7a3',
+    alignItems: 'center',
+  },
+  constructionText: {
+    color: '#8a4b00',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });

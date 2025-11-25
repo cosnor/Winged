@@ -7,15 +7,22 @@ import {
   setAudioModeAsync,
   useAudioRecorderState,
 } from "expo-audio";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../styles/theme";
+import { useBirdAnalysis } from "../../hooks/useBirdAnalysis";
 
-export default function AudioRecorder() {
-    const [loading, setLoading] = useState(false);
+interface AudioRecorderProps {
+  onDetectionsComplete?: (detections: any[]) => void;
+}
+
+export default function AudioRecorder({ onDetectionsComplete }: AudioRecorderProps) {
+  const [loading, setLoading] = useState(false);
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
+  const { connected, analyzing, analyzeAudio, error } = useBirdAnalysis();
+  
   // 🔹 animación del pulso con Animated API
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -104,14 +111,40 @@ export default function AudioRecorder() {
   };
 
 
-  // ⏹️ Detener grabación
+  // ⏹️ Detener grabación y analizar
   const stopRecording = async () => {
     setLoading(true);
     try {
       await audioRecorder.stop();
-      console.log("Grabación guardada en:", recorderState.url);
+      const audioUrl = recorderState.url;
+      console.log("Grabación guardada en:", audioUrl);
+
+      if (audioUrl && connected) {
+        // Normalizar la URL: agregar file:// si no tiene esquema
+        const normalizedUrl = audioUrl.startsWith('file://') 
+          ? audioUrl 
+          : `file://${audioUrl}`;
+        
+        console.log("📁 URL normalizada:", normalizedUrl);
+
+        // Convertir el audio a base64 para enviarlo
+        const base64Audio = await FileSystem.readAsStringAsync(normalizedUrl, {
+          encoding: 'base64'
+        });
+
+        const filename = `recording_${Date.now()}.wav`;
+        console.log("📤 Enviando audio para análisis:", filename);
+
+        await analyzeAudio(base64Audio, filename);
+      } else if (!connected) {
+        Alert.alert(
+          "Sin conexión",
+          "No hay conexión con el servidor. Verifica que los servicios estén corriendo."
+        );
+      }
     } catch (error) {
       console.error("Error al detener la grabación:", error);
+      Alert.alert("Error", "No se pudo procesar el audio");
     } finally {
       setLoading(false);
     }
@@ -120,6 +153,11 @@ export default function AudioRecorder() {
 
   return (
     <View style={styles.container}>
+      {/* Estado de conexión */}
+      {!connected && (
+        <Text style={styles.connectionStatus}>⚠️ Sin conexión al servidor</Text>
+      )}
+
       <View style={styles.micContainer}>
         {recorderState.isRecording && (
           <Animated.View
@@ -133,9 +171,9 @@ export default function AudioRecorder() {
             recorderState.isRecording && styles.recording,
           ]}
           onPress={recorderState.isRecording ? stopRecording : startRecording}
-          disabled={loading}
+          disabled={loading || analyzing}
         >
-          {loading ? (
+          {loading || analyzing ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Ionicons name="mic" size={40} color="#fff" />
@@ -144,8 +182,14 @@ export default function AudioRecorder() {
       </View>
 
       <Text style={styles.statusText}>
-        {recorderState.isRecording ? "Grabando..." : "Presiona para grabar"}
+        {analyzing
+          ? "🔍 Analizando..."
+          : recorderState.isRecording
+          ? "🎙️ Grabando..."
+          : "Presiona para grabar"}
       </Text>
+
+      {error && <Text style={styles.errorText}>❌ {error}</Text>}
     </View>
   );
 }
@@ -187,6 +231,17 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 16,
     color: "#333",
+  },
+  connectionStatus: {
+    fontSize: 12,
+    color: "#ff6b6b",
+    marginBottom: 10,
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#ff6b6b",
+    marginTop: 10,
+    textAlign: "center",
   },
   playButton: {
     marginTop: 30,

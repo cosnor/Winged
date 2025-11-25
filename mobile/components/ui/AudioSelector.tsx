@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import { useBirdAnalysis } from '../../hooks/useBirdAnalysis';
 
 interface AudioFile {
   uri: string;
@@ -11,10 +13,15 @@ interface AudioFile {
   mimeType: string;
 }
 
-export default function AudioSelector() {
+interface AudioSelectorProps {
+  onDetectionsComplete?: (detections: any[]) => void;
+}
+
+export default function AudioSelector({ onDetectionsComplete }: AudioSelectorProps) {
   const [selectedFile, setSelectedFile] = useState<AudioFile | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { connected, analyzing, analyzeAudio, error } = useBirdAnalysis();
 
   const selectFile = async () => {
     try {
@@ -83,8 +90,42 @@ export default function AudioSelector() {
     }
   };
 
+  const analyzeSelectedFile = async () => {
+    if (!selectedFile) {
+      Alert.alert('Error', 'Primero selecciona un archivo de audio');
+      return;
+    }
+
+    if (!connected) {
+      Alert.alert(
+        'Sin conexión',
+        'No hay conexión con el servidor. Verifica que los servicios estén corriendo.'
+      );
+      return;
+    }
+
+    try {
+      console.log('📁 Leyendo archivo:', selectedFile.name);
+      
+      // Convertir el archivo a base64
+      const base64Audio = await FileSystem.readAsStringAsync(selectedFile.uri, {
+        encoding: 'base64'
+      });
+
+      console.log('📤 Enviando archivo para análisis...');
+      await analyzeAudio(base64Audio, selectedFile.name);
+    } catch (err) {
+      console.error('❌ Error al analizar archivo:', err);
+      Alert.alert('Error', 'No se pudo procesar el archivo de audio');
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {!connected && (
+        <Text style={styles.connectionStatus}>⚠️ Sin conexión al servidor</Text>
+      )}
+
       <TouchableOpacity style={styles.fileButton} onPress={selectFile}>
         <Ionicons name="document-attach" size={24} color="#d2691e" />
         <Text style={styles.fileButtonText}>
@@ -108,6 +149,25 @@ export default function AudioSelector() {
           )}
         </View>
       )}
+
+      {selectedFile && (
+        <TouchableOpacity 
+          style={[styles.analyzeButton, analyzing && styles.analyzeButtonDisabled]} 
+          onPress={analyzeSelectedFile}
+          disabled={analyzing || !connected}
+        >
+          <Ionicons 
+            name={analyzing ? "hourglass" : "search"} 
+            size={20} 
+            color="#fff" 
+          />
+          <Text style={styles.analyzeButtonText}>
+            {analyzing ? 'Analizando...' : 'Analizar Audio'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {error && <Text style={styles.errorText}>❌ {error}</Text>}
     </View>
   );
 }
@@ -145,5 +205,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#d2691e',
+  },
+  analyzeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#d2691e',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 15,
+    width: '100%',
+    gap: 8,
+  },
+  analyzeButtonDisabled: {
+    opacity: 0.6,
+  },
+  analyzeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  connectionStatus: {
+    fontSize: 12,
+    color: '#ff6b6b',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ff6b6b',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });

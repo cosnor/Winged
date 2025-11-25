@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -9,41 +9,10 @@ import AudioSelector from "../../../components/ui/AudioSelector";
 import BirdRegistry from "../../../components/ui/BirdRegistry";
 import { router } from "expo-router";
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useBirdDetections } from "../../../context/bird-detection-context";
 
 export default function AudioUploadScreen() {
-  // Datos de ejemplo - En una implementación real, esto vendría de una API o estado global
-  const identifiedBirds = [
-    {
-      id: '3',
-      commonName: 'Tucán Pico Iris',
-      scientificName: 'Ramphastos sulfuratus',
-      imageUrl: 'https://static.inaturalist.org/photos/75880847/large.jpg',
-    },
-    {
-      id: '4',
-      commonName: 'Guacamaya Roja',
-      scientificName: 'Ara macao',
-      imageUrl: 'https://static.inaturalist.org/photos/75880846/large.jpg',
-    },
-    {
-      id: '5',
-      commonName: 'Guacamaya Verde',
-      scientificName: 'Ara militaris',
-      imageUrl: 'https://static.inaturalist.org/photos/75880845/large.jpg',
-    },
-    {
-      id: '6',
-      commonName: 'Colibrí Ruby',
-      scientificName: 'Chrysolampis mosquitus',
-      imageUrl: 'https://static.inaturalist.org/photos/75880844/large.jpg',
-    },
-    {
-      id: '7',
-      commonName: 'Colibrí Ruby',
-      scientificName: 'Chrysolampis mosquitus',
-      imageUrl: 'https://static.inaturalist.org/photos/75880844/large.jpg',
-    }
-  ];
+  const { identifiedBirds } = useBirdDetections();
 
   return (
     <SafeAreaView style={styles.container}>
