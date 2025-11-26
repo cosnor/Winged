@@ -44,4 +44,5 @@ class DistributionZoneRequest(BaseModel):
     lat: float
     lon: float
     datetime: str
+    radius: float = 500   # metros alrededor
     grid_size: float = 0.001   # ~100m

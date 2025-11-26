@@ -126,7 +126,7 @@ export const getDistribution = async (
  */
 export const getZones = async () => {
   try {
-    const response = await fetch(`${MAPS_API_URL}/distribution-zone`);
+    const response = await fetch(`${MAPS_API_URL}/zones`);
     console.log(response)
     if (!response.ok) {
       throw new Error(`Zones API error: ${response.status}`);
@@ -138,6 +138,62 @@ export const getZones = async () => {
     return data;
   } catch (error) {
     console.error('❌ Error fetching zones:', error);
+    throw error;
+  }
+};
+
+/**
+ * Obtiene la distribución de especies dentro de una zona específica
+ * @param lat Latitud (si no se proporciona, usa ubicación del usuario)
+ * @param lon Longitud (si no se proporciona, usa ubicación del usuario)
+ * @param radius Radio en metros (default: 500)
+ * @param grid_size Tamaño de la cuadrícula (default: 0.002)
+ */
+export const getZonesForPoint = async (
+  lat?: number,
+  lon?: number,
+  radius: number = 500,
+  grid_size: number = 0.002
+): Promise<DistributionResponse> => {
+  try {
+    const datetime = new Date().toISOString();
+    
+    const requestBody: DistributionRequest = {
+      lat: lat || 0,
+      lon: lon || 0,
+      datetime,
+      radius,
+      grid_size
+    };
+
+    console.log('🌐 Full URL for zones:', `${MAPS_API_URL}/distribution-zone`);
+    console.log('📍 Request body for zones:', JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch(`${MAPS_API_URL}/distribution-zone`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log('📨 Zones response status:', response.status, response.statusText);
+    const contentType = response.headers.get('content-type');
+    const contentLength = response.headers.get('content-length');
+    console.log('📨 Zones response headers:', { contentType, contentLength });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Zones API error:', response.status, errorText);
+      throw new Error(`Zones API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Zones distribution loaded: ${data.species_distributions?.length || 0} species`);
+    
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching zones (distribution-zone):', error);
     throw error;
   }
 };

@@ -7,7 +7,7 @@ import { SpeciesDistribution } from '../../../../data/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import zonas from '../../../../data/zonas.json';
 import bird_zones from "../../../../data/bird_zones_test.json"; // Tu JSON con las aves
-import { getZones } from '../../../../services/mapsService';
+import { getZones, getZonesForPoint } from '../../../../services/mapsService';
 import { ActivityIndicator } from 'react-native';
 import DropDownPicker from "react-native-dropdown-picker";
 
@@ -146,6 +146,28 @@ export default function ZonesScreen() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    // Cargar distribución de especies para la ubicación del usuario
+    (async () => {
+      if (userRegion?.latitude && userRegion?.longitude) {
+        try {
+          const data = await getZonesForPoint(
+            userRegion.latitude,
+            userRegion.longitude,
+            500,
+            0.002
+          );
+          if (data?.species_distributions) {
+            setSpeciesData(data.species_distributions);
+            console.log('📍 Loaded species distribution for location:', data.species_distributions.length, 'species');
+          }
+        } catch (error) {
+          console.error('Failed to load species distribution:', error);
+        }
+      }
+    })();
+  }, [userRegion]);
 
   
 
