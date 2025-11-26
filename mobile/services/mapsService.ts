@@ -122,11 +122,59 @@ export const getDistribution = async (
 };
 
 /**
+ * Obtiene la distribución de especies dentro de una zona específica
+ * @param lat Latitud del punto central
+ * @param lon Longitud del punto central
+ * @param grid_size Tamaño de la cuadrícula (default: 0.003 ~330m)
+ */
+export const getZoneDistribution = async (
+  lat: number,
+  lon: number,
+  grid_size: number = 0.003
+): Promise<DistributionResponse> => {
+  try {
+    const datetime = new Date().toISOString();
+    
+    const requestBody = {
+      lat,
+      lon,
+      datetime,
+      grid_size
+    };
+
+    console.log('🗺️ Requesting zone distribution from:', MAPS_API_URL);
+    console.log('📍 Request:', requestBody);
+
+    const response = await fetch(`${MAPS_API_URL}/distribution-zone`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Zone Distribution API error:', response.status, errorText);
+      throw new Error(`Zone Distribution API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Zone distribution loaded: ${data.species_distributions?.length || 0} species`);
+    
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching zone distribution:', error);
+    throw error;
+  }
+};
+
+/**
  * Obtiene las zonas de Barranquilla como GeoJSON
  */
 export const getZones = async () => {
   try {
-    const response = await fetch(`${MAPS_API_URL}/distribution-zone`);
+    const response = await fetch(`${MAPS_API_URL}/zones`);
     console.log(response)
     if (!response.ok) {
       throw new Error(`Zones API error: ${response.status}`);
