@@ -33,6 +33,37 @@ export default function AvedexCard({
   onPress 
 }: AvedexCardProps) {
   const [showModal, setShowModal] = useState(false);
+  const [wikiImage, setWikiImage] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+
+  // Fetch Wikipedia image
+  React.useEffect(() => {
+    const fetchWikipediaImage = async () => {
+      try {
+        setLoadingImage(true);
+        // Normalizar el nombre: reemplazar espacios por guiones bajos
+        const searchName = commonName.replace(/ /g, '_');
+        const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchName)}`;
+        
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          // La imagen viene en data.thumbnail.source o data.originalimage.source
+          if (data.thumbnail?.source) {
+            setWikiImage(data.thumbnail.source);
+          } else if (data.originalimage?.source) {
+            setWikiImage(data.originalimage.source);
+          }
+        }
+      } catch (error) {
+        console.log('Error fetching Wikipedia image:', error);
+      } finally {
+        setLoadingImage(false);
+      }
+    };
+
+    fetchWikipediaImage();
+  }, [commonName]);
 
   const handleCardPress = () => {
     setShowModal(true);
@@ -41,6 +72,9 @@ export default function AvedexCard({
   const handleClose = () => {
     setShowModal(false);
   };
+
+  // Usar imagen de Wikipedia si está disponible, sino usar la original
+  const displayImage = wikiImage || imageUrl;
 
 
   return (
@@ -55,7 +89,7 @@ export default function AvedexCard({
         {/* Imagen con overlay gradiente */}
         <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: imageUrl }}
+            source={{ uri: displayImage }}
             style={styles.image}
             resizeMode="cover"
           />
@@ -132,7 +166,7 @@ export default function AvedexCard({
         >
           <View style={styles.imageContainer}>
             <Image 
-              source={{ uri: imageUrl }}
+              source={{ uri: displayImage }}
               style={styles.modalImage}
               resizeMode="cover"
             />
