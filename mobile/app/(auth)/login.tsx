@@ -78,6 +78,13 @@ export default function Login() {
       // Persist token
       await AsyncStorage.setItem('ACCESS_TOKEN', token);
 
+      // Persist user info if available
+      const userInfo = body.user_info || body.data?.user_info || body.user;
+      if (userInfo) {
+        await AsyncStorage.setItem('USER_INFO', JSON.stringify(userInfo));
+        console.log('✅ User info saved:', userInfo);
+      }
+
       setStatus({ type: 'success', message: '¡Bienvenido!', visible: true });
       setTimeout(() => router.push('/(app)'), 400);
     } catch (error) {

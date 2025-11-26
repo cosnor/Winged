@@ -30,9 +30,11 @@ export function BirdDetectionProvider({ children }: { children: ReactNode }) {
   const { addBird, hasBird } = useAvedex();
 
   const addDetections = (detections: BirdDetection[]) => {
+    console.log(`🎯 addDetections called with ${detections.length} detections`);
+    
     // Convertir detecciones a aves identificadas
     const newBirds: IdentifiedBird[] = detections.map((detection, index) => ({
-      id: `${Date.now()}_${index}`,
+      id: detection.species_name, // Use species_name as ID to avoid duplicates
       commonName: detection.common_name || detection.species_name,
       scientificName: detection.scientific_name || detection.species_name,
       confidence: detection.confidence,
@@ -41,27 +43,40 @@ export function BirdDetectionProvider({ children }: { children: ReactNode }) {
       imageUrl: undefined
     }));
 
-    // Agregar las nuevas aves al principio de la lista
-    setIdentifiedBirds(prev => [...newBirds, ...prev]);
+    console.log(`🐦 Converted to ${newBirds.length} identified birds:`, newBirds.map(b => b.commonName).join(', '));
+
+    // Deduplicate: only add birds that aren't already in the list
+    setIdentifiedBirds(prev => {
+      const existingIds = new Set(prev.map(b => b.id));
+      const uniqueNewBirds = newBirds.filter(b => !existingIds.has(b.id));
+      console.log(`📋 Adding ${uniqueNewBirds.length} new birds to identifiedBirds list (${existingIds.size} already existed)`);
+      return [...uniqueNewBirds, ...prev];
+    });
 
     // Registrar en Avedex
-    detections.forEach(detection => {
+    console.log(`📝 Registering ${detections.length} birds in Avedex...`);
+    detections.forEach((detection, index) => {
       // Usar el nombre de la especie como ID para evitar duplicados en Avedex
       const birdId = detection.species_name;
+      const alreadyInAvedex = hasBird(birdId);
+      
+      console.log(`[${index + 1}/${detections.length}] ${detection.common_name || detection.species_name} - Already in Avedex: ${alreadyInAvedex}`);
       
       // Solo agregar si no existe ya en el Avedex
-      if (!hasBird(birdId)) {
+      if (!alreadyInAvedex) {
+        console.log(`  ➕ Adding to Avedex...`);
         addBird({
           id: birdId,
           commonName: detection.common_name || detection.species_name,
           scientificName: detection.scientific_name || detection.species_name,
           imageUrl: 'https://via.placeholder.com/150', // Imagen por defecto
         });
-        console.log(`✅ Ave registrada en Avedex: ${detection.common_name || detection.species_name}`);
+      } else {
+        console.log(`  ⏭️ Skipping (already in collection)`);
       }
     });
 
-    console.log('✅ Agregadas', newBirds.length, 'nuevas detecciones al registro');
+    console.log(`✅ Finished processing detections`);
   };
 
   const clearDetections = () => {

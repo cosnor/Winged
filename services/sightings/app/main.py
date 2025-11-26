@@ -73,46 +73,38 @@ async def create_sighting(sighting: SightingCreate):
             achievement_data = {
                 "user_id": sighting.user_id,
                 "species_name": sighting.species_name,
-                "confidence": sighting.confidence_score,
-                "location": {
-                    "latitude": sighting.location_lat,
-                    "longitude": sighting.location_lon
-                },
-                "detection_time": sighting.timestamp.isoformat()
+                "common_name": sighting.common_name,
+                "confidence_score": sighting.confidence_score,
+                "location_lat": sighting.location_lat,
+                "location_lon": sighting.location_lon,
+                "timestamp": sighting.timestamp.isoformat()
             }
             
             response = await client.post(
-                f"{ACHIEVEMENTS_URL}/species/detect",
+                f"{ACHIEVEMENTS_URL}/users/{sighting.user_id}/sightings",
                 json=achievement_data,
                 timeout=10.0
             )
             
             if response.status_code == 200:
-                # Normalize possible shapes from achievements service:
-                # - bare list: [...]
-                # - wrapper dict: {"success": True, "message": "...", "data": [...]}
-                # - single dict representing one achievement: {...}
-                # - empty or non-JSON -> treat as []
+                # The /users/{user_id}/sightings endpoint returns:
+                # {"message": "...", "newly_unlocked_achievements": [...]}
                 try:
                     body = response.json()
                 except ValueError:
                     body = None
 
-                if isinstance(body, dict) and "data" in body:
-                    norm = body.get("data") or []
-                    # if data is a single dict, wrap it
-                    if isinstance(norm, dict):
-                        norm = [norm]
-                    achievements_unlocked = norm
-                elif isinstance(body, list):
-                    achievements_unlocked = body
-                elif isinstance(body, dict):
-                    # single achievement -> wrap into list
-                    achievements_unlocked = [body]
+                if isinstance(body, dict):
+                    # Extract newly_unlocked_achievements from response
+                    unlocked = body.get("newly_unlocked_achievements", [])
+                    if isinstance(unlocked, list):
+                        achievements_unlocked = unlocked
+                    else:
+                        achievements_unlocked = []
                 else:
                     achievements_unlocked = []
             else:
-                print(f"Failed to process achievements: {response.status_code}")
+                print(f"Failed to process achievements: {response.status_code} - {response.text}")
                 
     except Exception as e:
         print(f"Error communicating with achievements service: {e}")

@@ -60,11 +60,11 @@ export default function AvedexScreen() {
       <ScrollView contentContainerStyle={styles.grid}>
         {birds.map((bird, index) => (
           <Animatable.View
-            key={bird.id}
+            key={`${bird.id}-${index}`}
             animation={shouldAnimate && newBirdIds.has(bird.id) ? "slideInUp" : undefined}
             delay={shouldAnimate ? index * 100 : 0} // Retraso escalonado solo cuando se debe animar
             duration={500}
-            useNativeDriver
+            useNativeDriver={true}
           >
             <AvedexCard
               {...bird}

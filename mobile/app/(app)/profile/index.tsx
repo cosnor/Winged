@@ -1,14 +1,50 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "../../../styles/theme"; // Usa tu tema global si ya lo tienes
-import { SafeAreaView } from 'react-native-safe-area-context';  
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import { useAvedex } from "../../../context/avedex-context";  
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const { clearCollection } = useAvedex();
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro que deseas cerrar sesión?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Cerrar Sesión",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Clear AsyncStorage
+              await AsyncStorage.removeItem('ACCESS_TOKEN');
+              await AsyncStorage.removeItem('USER_INFO');
+              
+              // Clear Avedex collection for this user
+              await clearCollection();
+              
+              // Navigate to login
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Hubo un problema al cerrar sesión');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -110,6 +146,14 @@ export default function ProfileScreen() {
           <Text style={styles.statLabel}>Racha Activa</Text>
         </View>
       </View>
+
+      {/* Botón de Cerrar Sesión */}
+      {user && (
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color="#fff" />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -168,5 +212,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.mutedForeground,
     marginTop: 3,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc2626',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    marginTop: 30,
+    gap: 8,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

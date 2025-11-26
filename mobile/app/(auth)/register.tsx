@@ -79,6 +79,14 @@ export default function Register() {
       }
 
       await AsyncStorage.setItem('ACCESS_TOKEN', token);
+      
+      // Persist user info if available
+      const userInfo = body.user_info || body.data?.user_info || body.user || body.data;
+      if (userInfo) {
+        await AsyncStorage.setItem('USER_INFO', JSON.stringify(userInfo));
+        console.log('✅ User info saved on signup:', userInfo);
+      }
+
       setStatus({ type: 'success', message: 'Cuenta creada. Bienvenido!', visible: true });
       // Navigate to main app since backend auto-logged the user
       setTimeout(() => router.push('/(app)'), 400);
