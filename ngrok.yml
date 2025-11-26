@@ -1,0 +1,6 @@
+version: "2"
+authtoken: 35kqc30ZoCWrzpOLaE5SrRFUmgh_4gkYU5J7EuYrJcd8cfZdH
+tunnels:
+  websocket:
+    proto: http
+    addr: 8004

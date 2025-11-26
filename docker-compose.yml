@@ -1,0 +1,164 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: backend
+    ports:
+      - "8007:8000"
+    volumes:
+      - ./backend/app:/code/app:Z
+      - ./backend/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - USERS_URL=http://users:8001
+      - SIGHTINGS_URL=http://sightings:8002
+      - ML_WORKER_URL=http://ml_worker:8003
+      - MAPS_URL=http://maps:8004
+      - ROUTES_URL=http://routes:8005
+      - ACHIEVEMENTS_URL=http://achievements:8006
+      - BIRDNET_WS_URL=ws://host.docker.internal:8010/ws
+    depends_on:
+      db:
+        condition: service_healthy
+      users:
+        condition: service_started
+    networks:
+      - winged_network
+
+  users:
+    build: ./services/users
+    container_name: users
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./services/users/app:/code/app:Z
+      - ./services/users/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=winged_users
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
+
+  sightings:
+    build: ./services/sightings
+    container_name: sightings
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./services/sightings/app:/code/app:Z
+      - ./services/sightings/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_sightings
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
+
+  ml_worker:
+    build: ./services/ml_worker
+    container_name: ml_worker
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./services/ml_worker/app:/code/app:Z
+      - ./services/ml_worker/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - ACHIEVEMENTS_SERVICE_URL=http://achievements:8006
+      - SIGHTINGS_SERVICE_URL=http://sightings:8002
+      - BIRDNET_API_URL=http://host.docker.internal:8000
+
+      - BIRDNET_MONGODB_URL=mongodb://admin:birdnet123@birdnet-mongodb:27017/birdnet_db?authSource=admin
+      - BIRDNET_DATABASE_NAME=birdnet_db
+      - BIRDNET_SESSIONS_COLLECTION=sessions
+      - BIRDNET_DETECTIONS_COLLECTION=detections
+    depends_on:
+      - achievements
+    networks:
+      - winged_network
+      - microservice_birdnet-network
+
+  maps:
+    build: ./services/maps
+    container_name: maps
+    ports:
+      - "8004:8004"
+    volumes:
+      - ./services/maps/app:/code/app:Z
+      - ./services/maps/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_maps
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
+
+  routes:
+    build: ./services/routes
+    container_name: routes
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./services/routes/app:/code/app:Z
+      - ./services/routes/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_routes
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
+
+  achievements:
+    build: ./services/achievements
+    container_name: achievements
+    ports:
+      - "8006:8006"
+    volumes:
+      - ./services/achievements/app:/code/app:Z
+      - ./services/achievements/requirements.txt:/code/requirements.txt:Z
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/winged_achievements
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - winged_network
+
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:Z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - winged_network
+
+networks:
+  winged_network:
+    driver: bridge
+  microservice_birdnet-network:
+    external: true
+
+volumes:
+  postgres_data:

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: winged
+data:
+  USERS_URL: "http://users-service:8001"
+  SIGHTINGS_URL: "http://sightings-service:8002"
+  ML_WORKER_URL: "http://ml-worker-service:8003"
+  MAPS_URL: "http://maps-service:8004"
+  ROUTES_URL: "http://routes-service:8005"
+  ACHIEVEMENTS_URL: "http://achievements-service:8006"

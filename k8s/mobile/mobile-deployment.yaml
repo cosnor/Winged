@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobile-app
+  namespace: winged
+  labels:
+    app: mobile-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mobile-app
+  template:
+    metadata:
+      labels:
+        app: mobile-app
+    spec:
+      containers:
+      - name: mobile-app
+        image: winged/mobile:latest  # Replace with your actual image
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+        - containerPort: 19000
+        - containerPort: 19001
+        env:
+        - name: EXPO_DEVTOOLS_LISTEN_ADDRESS
+          value: "0.0.0.0"
+        - name: REACT_NATIVE_PACKAGER_HOSTNAME
+          value: "localhost"  # Adjust for your setup
+        - name: API_BASE_URL
+          value: "http://backend-service:8000"
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobile-service
+  namespace: winged
+  labels:
+    app: mobile-app
+spec:
+  selector:
+    app: mobile-app
+  ports:
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: expo
+  - port: 19000
+    targetPort: 19000
+    protocol: TCP
+    name: expo-devtools
+  - port: 19001
+    targetPort: 19001
+    protocol: TCP
+    name: expo-metro
+  type: ClusterIP

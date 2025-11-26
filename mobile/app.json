@@ -7,15 +7,37 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-audio",
+      "expo-font",
+      "expo-asset"
+    ],
+    "extra": {
+      "API_BASE_URL": "https://sabrina-blizzardly-nonequably.ngrok-free.dev"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Esta app necesita acceso al micrófono para grabar sonidos de aves"
+      }
     },
     "android": {
+      "permissions": [
+        "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "TU_API_KEY_DE_GOOGLE_MAPS"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
