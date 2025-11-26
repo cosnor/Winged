@@ -174,9 +174,9 @@ export default function AudioRecorder({ onDetectionsComplete }: AudioRecorderPro
           disabled={loading || analyzing}
         >
           {loading || analyzing ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" size="large" />
           ) : (
-            <Ionicons name="mic" size={40} color="#fff" />
+            <Ionicons name="mic" size={44} color="#fff" />
           )}
         </TouchableOpacity>
       </View>
@@ -198,61 +198,56 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
+    width: '100%',
   },
-
-  // 🔹 El contenedor que agrupa la animación y el botón
   micContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: 140,
-    height: 100,
+    width: 160,
+    height: 160,
   },
-
   pulse: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 60,
-    backgroundColor: theme.colors.accent,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 107, 53, 0.25)',
     zIndex: 1,
   },
-
   micButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 100,
-    padding: 25,
-    elevation: 6,
+    backgroundColor: '#d2691e',
+    borderRadius: 60,
+    padding: 30,
+    shadowColor: '#ff6b35',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
     zIndex: 2,
+    borderWidth: 4,
+    borderColor: '#ff9a41',
   },
   recording: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: '#ff6b35',
+    borderColor: '#ff9a41',
   },
   statusText: {
-    marginTop: 5,
-    fontSize: 16,
-    color: "#333",
+    marginTop: 20,
+    fontSize: 18,
+    color: "#555",
+    fontWeight: '700',
   },
   connectionStatus: {
-    fontSize: 12,
-    color: "#ff6b6b",
-    marginBottom: 10,
+    fontSize: 13,
+    color: '#ff6b35',
+    marginBottom: 12,
+    fontWeight: '600',
   },
   errorText: {
-    fontSize: 12,
-    color: "#ff6b6b",
-    marginTop: 10,
+    fontSize: 13,
+    color: '#ff6b35',
+    marginTop: 12,
     textAlign: "center",
-  },
-  playButton: {
-    marginTop: 30,
-    alignItems: "center",
-  },
-  playDisabled: {
-    opacity: 0.5,
-  },
-  playText: {
-    marginTop: 5,
-    color: theme.colors.mutedForeground,
-    fontSize: 14,
+    fontWeight: '600',
   },
 });
