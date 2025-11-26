@@ -7,12 +7,13 @@ import * as Animatable from 'react-native-animatable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AvedexScreen() {
-  const { birds, loading, error, newBirdIds, markBirdsAsSeen } = useAvedex();
+  const { birds, loading, error, newBirdIds, markBirdsAsSeen, refresh } = useAvedex();
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
+      refresh();
       setShouldAnimate(true);
       // Reiniciar la animación después de un tiempo
       const timer = setTimeout(() => {
