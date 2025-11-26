@@ -118,12 +118,26 @@ async def distribution_zone(payload: DistributionRequest):
     Forwards request to the maps service and returns species distributions for
     the requested point/grid.
     """
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    print(f"Forwarding distribution-zone request to {MAPS_URL}/distribution-zone")
+    print(f"Payload: {payload}")
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
             # use by_alias=True so the JSON key "datetime" (alias) is used
-            resp = await client.post(f"{MAPS_URL}/distribution-zone", json=jsonable_encoder(payload, by_alias=True))
+            json_payload = jsonable_encoder(payload, by_alias=True)
+            print(f"JSON Payload: {json_payload}")
+            resp = await client.post(f"{MAPS_URL}/distribution-zone", json=json_payload)
+            print(f"Response status: {resp.status_code}")
         except httpx.RequestError as e:
-            raise HTTPException(status_code=503, detail=f"Maps service unavailable: {e}")
+            print(f"Error connecting to maps service: {e!r}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=503, detail=f"Maps service unavailable: {e!r}")
+        except Exception as e:
+            print(f"Unexpected error: {e!r}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Internal server error: {e!r}")
 
     if resp.status_code >= 400:
         try:
