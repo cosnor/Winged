@@ -5,10 +5,16 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Animatable from 'react-native-animatable';
+import { Ionicons } from '@expo/vector-icons';
 import StatusMessage from "../../components/ui/StatusMessage";
 
 export default function Register() {
@@ -122,119 +128,239 @@ export default function Register() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Crear Cuenta</Text>
-      <Text style={styles.subtitle}>¡Únete a Winged!</Text>
+    <LinearGradient colors={['#fffaf0', '#ffe4d6', '#ffd4ba']} style={styles.gradient}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animatable.View animation="fadeInDown" duration={800} style={styles.headerContainer}>
+            <LinearGradient
+              colors={['#4ade80', '#16a34a']}
+              style={styles.logoCircle}
+            >
+              <Ionicons name="person-add" size={48} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.title}>Crear Cuenta</Text>
+            <Text style={styles.subtitle}>¡Únete a la comunidad Winged!</Text>
+          </Animatable.View>
 
-      <Text style={styles.label}>Nombre de usuario</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Tu nombre"
-        autoCapitalize="words"
-        value={username}
-        onChangeText={(text: string) => setUsername(text)}
-      />
+          <Animatable.View animation="fadeInUp" delay={200} duration={800} style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrapper}>
+                <Ionicons name="person" size={20} color="#4ade80" />
+              </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Nombre de usuario</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Tu nombre"
+                  placeholderTextColor="#aaa"
+                  autoCapitalize="words"
+                  value={username}
+                  onChangeText={(text: string) => setUsername(text)}
+                />
+              </View>
+            </View>
 
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrapper}>
+                <Ionicons name="mail" size={20} color="#4ade80" />
+              </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Correo</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="tu@email.com"
+                  placeholderTextColor="#aaa"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={(text: string) => setEmail(text)}
+                />
+              </View>
+            </View>
 
-      <Text style={styles.label}>Correo</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="tu@email.com"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={(text: string) => setEmail(text)}
-      />
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrapper}>
+                <Ionicons name="lock-closed" size={20} color="#4ade80" />
+              </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Contraseña</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••"
+                  placeholderTextColor="#aaa"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={(text: string) => setPassword(text)}
+                />
+              </View>
+            </View>
 
-      <Text style={styles.label}>Contraseña</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="••••••"
-        secureTextEntry
-        value={password}
-        onChangeText={(text: string) => setPassword(text)}
-      />
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIconWrapper}>
+                <Ionicons name="checkmark-circle" size={20} color="#4ade80" />
+              </View>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.label}>Confirmar Contraseña</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••"
+                  placeholderTextColor="#aaa"
+                  secureTextEntry
+                  value={passwordConfirm}
+                  onChangeText={(text: string) => setPasswordConfirm(text)}
+                />
+              </View>
+            </View>
 
-      <Text style={styles.label}>Confirmar Contraseña</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="••••••"
-        secureTextEntry
-        value={passwordConfirm}
-        onChangeText={(text: string) => setPasswordConfirm(text)}
-      />
+            <TouchableOpacity onPress={handleRegister}>
+              <LinearGradient
+                colors={['#4ade80', '#16a34a']}
+                style={styles.button}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Text style={styles.buttonText}>Crear Cuenta</Text>
+                <Ionicons name="checkmark" size={22} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Crear Cuenta</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push("/login")}>
-        <Text style={styles.registerText}>
-          ¿Ya tienes una cuenta?{" "}
-          <Text style={{ color: "#d2691e", fontWeight: "bold" }}>
-            Inicia Sesión
-          </Text>
-        </Text>
-      </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/login")} style={styles.registerButton}>
+              <Text style={styles.registerText}>
+                ¿Ya tienes una cuenta?{" "}
+                <Text style={styles.registerTextBold}>
+                  Inicia Sesión
+                </Text>
+              </Text>
+            </TouchableOpacity>
+          </Animatable.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <StatusMessage
         type={status.type}
         message={status.message}
         visible={status.visible}
       />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradient: {
     flex: 1,
-    backgroundColor: "#fffaf0",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    paddingTop: 40,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    shadowColor: '#16a34a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 10,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 5,
-    color: "#d2691e",
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#16a34a',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 30,
+    fontSize: 15,
+    color: '#15803d',
+    fontWeight: '500',
+  },
+  formContainer: {
+    width: '100%',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  inputIconWrapper: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0fdf4',
+  },
+  inputWrapper: {
+    flex: 1,
+    padding: 16,
   },
   label: {
-    alignSelf: "flex-start",
-    marginBottom: 5,
-    fontSize: 14,
-    color: "#333",
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   input: {
-    width: "100%",
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 15,
-    backgroundColor: "#fff",
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 0,
   },
   button: {
-    width: "100%",
-    backgroundColor: "#d2691e",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginTop: 8,
+    shadowColor: '#16a34a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+    gap: 8,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  registerButton: {
+    marginTop: 24,
+    alignItems: 'center',
   },
   registerText: {
-    marginTop: 20,
-    color: "#333",
+    fontSize: 15,
+    color: '#666',
+  },
+  registerTextBold: {
+    color: '#16a34a',
+    fontWeight: 'bold',
   },
 });

@@ -6,8 +6,10 @@ import { useEffect, useState, useRef } from 'react';
 import { SpeciesDistribution } from '../../../../data/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import zonas from '../../../../data/zonas.json';
-import bird_zones from "../../../../data/bird_zones_test.json"; // Tu JSON con las aves
+import bird_zones from "../../../../data/bird_zones_test.json";
 import DropDownPicker from "react-native-dropdown-picker";
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Animatable from 'react-native-animatable';
 
 
 // Centro exacto del polígono principal
@@ -56,6 +58,7 @@ export default function ZonesScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesDistribution[]>([]);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
 
   const [userRegion, setUserRegion] = useState<Region | null>(null);
   const [selectedArea, setSelectedArea] = useState<any | null >(null);
@@ -80,9 +83,35 @@ export default function ZonesScreen() {
         longitude: location.coords.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      }, 1000); // 1 segundo de animación
+      }, 1000);
     } else {
-      Alert.alert('Ubicación no disponible', 'Asegúrate de haber otorgado permisos de ubicación. Si tiene permiso, espere unos momentos');
+      Alert.alert('📍 Ubicación no disponible', 'Asegúrate de haber otorgado permisos de ubicación');
+    }
+  };
+
+  const handleZoneSelect = (zoneName: string, zoneId: number) => {
+    setSelectedZone(zoneName);
+    setSelectedZoneId(zoneId);
+    setValue(zoneId);
+    
+    // Encontrar el polígono de la zona seleccionada
+    const feature = zonas.features.find((f: Feature) => f.properties.name === zoneName);
+    if (feature && mapRef.current) {
+      const coords = feature.geometry.coordinates[0];
+      const lats = coords.map(([lon, lat]: number[]) => lat);
+      const lons = coords.map(([lon, lat]: number[]) => lon);
+      
+      const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+      const centerLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+      const deltaLat = Math.max(...lats) - Math.min(...lats);
+      const deltaLon = Math.max(...lons) - Math.min(...lons);
+      
+      mapRef.current.animateToRegion({
+        latitude: centerLat,
+        longitude: centerLon,
+        latitudeDelta: deltaLat * 1.5,
+        longitudeDelta: deltaLon * 1.5,
+      }, 1000);
     }
   };
 
@@ -1294,17 +1323,48 @@ export default function ZonesScreen() {
   
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.mapContainer}>
-        <Text style={styles.subtitle}>Selecciona una especie para ver su distribución a 500 metros de ti</Text>
-        <MapView
-          style={styles.map}
-          showsUserLocation={true}
-          loadingEnabled={true}
-          ref={mapRef}
-          initialRegion={userRegion || BARRANQUILLA_REGION}
-          
+    <LinearGradient
+      colors={['#fffaf0', '#ffe4d6', '#ffd4ba']}
+      style={styles.gradient}
+    >
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView>
+        {/* Header */}
+        <Animatable.View animation="fadeInDown" duration={600} style={styles.header}>
+          <View style={styles.headerContent}>
+            <LinearGradient
+              colors={['#60a5fa', '#2563eb']}
+              style={styles.iconCircle}
             >
+              <Ionicons name="map" size={28} color="#fff" />
+            </LinearGradient>
+            <View style={styles.headerText}>
+              <Text style={styles.title}>Zonas de Barranquilla</Text>
+              <Text style={styles.headerSubtitle}>🗺️ Explora por ubicación</Text>
+            </View>
+          </View>
+        </Animatable.View>
+
+        {/* Map Card */}
+        <Animatable.View animation="fadeIn" duration={600} delay={200} style={styles.mapWrapper}>
+          <View style={styles.mapCard}>
+            <View style={styles.mapHeader}>
+              <Ionicons name="navigate-circle" size={20} color="#2563eb" />
+              <Text style={styles.mapTitle}>Mapa Interactivo</Text>
+              {selectedZone && (
+                <View style={styles.selectedBadge}>
+                  <Text style={styles.selectedBadgeText}>{selectedZone}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                showsUserLocation={true}
+                loadingEnabled={true}
+                ref={mapRef}
+                initialRegion={userRegion || BARRANQUILLA_REGION}
+              >
           {/* {selectedSpecies.map((sp, sIndex) =>
             sp.areas
               .filter((a: any) => a.probability >= 0.4)
@@ -1327,244 +1387,290 @@ export default function ZonesScreen() {
                 />
               ))
           )} */}
-          {zonas.features.map((feature: Feature, i: number) => {
-          const coords = feature.geometry.coordinates[0].map(([lon, lat]) => ({
-            latitude: lat,
-            longitude: lon,
-          }));
+                {zonas.features.map((feature: Feature, i: number) => {
+                  const coords = feature.geometry.coordinates[0].map(([lon, lat]) => ({
+                    latitude: lat,
+                    longitude: lon,
+                  }));
 
-          const fillColor = "#2196F380";
+                  const isSelected = selectedZone === feature.properties.name;
+                  const fillColor = isSelected ? 'rgba(96, 165, 250, 0.5)' : 'rgba(96, 165, 250, 0.15)';
+                  const strokeColor = isSelected ? '#2563eb' : '#60a5fa';
+                  const strokeWidth = isSelected ? 4 : 2;
 
-          return (
-            <Polygon
-              key={i}
-              coordinates={coords}
-              strokeColor="#2E7D32"
-              fillColor={fillColor}
-              strokeWidth={2}
-              tappable
-              onPress={() => setSelectedZone(feature.properties.name)}
+                  return (
+                    <Polygon
+                      key={i}
+                      coordinates={coords}
+                      strokeColor={strokeColor}
+                      fillColor={fillColor}
+                      strokeWidth={strokeWidth}
+                      tappable
+                      onPress={() => handleZoneSelect(feature.properties.name, zones.find(z => z.nombre === feature.properties.name)?.id || 0)}
+                    />
+                  );
+                })}
+
+              </MapView>
+            </View>
+          </View>
+        </Animatable.View>
+        {/* Zone Selector */}
+        <Animatable.View animation="fadeInUp" duration={600} delay={400} style={styles.selectorWrapper}>
+          <View style={styles.selectorCard}>
+            <View style={styles.selectorHeader}>
+              <Ionicons name="location" size={20} color="#60a5fa" />
+              <Text style={styles.selectorTitle}>Selecciona una Zona</Text>
+            </View>
+            <DropDownPicker
+              open={open}
+              value={value}
+              items={items}
+              setOpen={setOpen}
+              setValue={(callback) => {
+                const newValue = typeof callback === 'function' ? callback(value) : callback;
+                setValue(newValue);
+                const zone = zones.find(z => z.id === newValue);
+                if (zone && zone.id !== 0) {
+                  handleZoneSelect(zone.nombre, zone.id);
+                } else {
+                  setSelectedZone(null);
+                  setSelectedZoneId(null);
+                }
+              }}
+              setItems={setItems}
+              placeholder="Elige una zona..."
+              style={styles.dropdown}
+              dropDownContainerStyle={styles.dropdownContainer}
+              textStyle={styles.dropdownText}
+              listMode="SCROLLVIEW"
+              selectedItemContainerStyle={styles.selectedItemContainer}
+              selectedItemLabelStyle={styles.selectedItemLabel}
             />
-          );
-        })}
-        <TouchableOpacity style={styles.optionButton} onPress={centerOnUser}>
-            <Text style={styles.optionText}><Ionicons name="pin" size={20} color={"#ffffffff"} /></Text>
-          </TouchableOpacity>
-        </MapView>
-        {selectedZone && (
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>📍 {selectedZone}</Text>
-          <TouchableOpacity onPress={() => setSelectedZone(null)}>
-            <Text style={styles.closeBtn}>Cerrar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      </View>
-      <View style={styles.speciesList}>
-        <Text style={{ marginBottom: 10 }}>Selecciona una zona:</Text>
+          </View>
 
-      <DropDownPicker
-        open={open}
-        value={value}
-        items={items}
-        setOpen={setOpen}
-        setValue={setValue}
-        setItems={setItems}
-        placeholder="Elige una zona"
-        style={styles.dropdown}
-        dropDownContainerStyle={styles.dropdownContainer}
-        textStyle={styles.dropdownText}
-        listMode="SCROLLVIEW"
-      />
-      
-      <View style={styles.constructionContainer}>
-        <Text style={styles.constructionText}>🚧 Módulo en construcción — nuevas funciones próximamente.</Text>
-      </View>
-      
-      </View>
-    </SafeAreaView>
+          {/* Info Cards */}
+          <View style={styles.infoCardsContainer}>
+            <View style={styles.infoCardSmall}>
+              <LinearGradient
+                colors={['#fff', '#fffaf0']}
+                style={styles.infoCardGradient}
+              >
+                <Ionicons name="grid" size={18} color="#60a5fa" />
+                <Text style={styles.infoCardNumber}>{zonas.features.length}</Text>
+                <Text style={styles.infoCardLabel}>Zonas</Text>
+              </LinearGradient>
+            </View>
+            {selectedZone && (
+              <Animatable.View animation="bounceIn" duration={600} style={styles.infoCardSmall}>
+                <LinearGradient
+                  colors={['#60a5fa', '#2563eb']}
+                  style={styles.infoCardGradient}
+                >
+                  <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                  <Text style={[styles.infoCardNumber, { color: '#fff' }]}>✓</Text>
+                  <Text style={[styles.infoCardLabel, { color: '#fff' }]}>Seleccionada</Text>
+                </LinearGradient>
+              </Animatable.View>
+            )}
+          </View>
+        </Animatable.View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fffaf0',
-    justifyContent: 'flex-start',
-    alignContent: 'flex-start'
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  headerText: {
+    flex: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#d2691e',
-    textAlign: 'center',
-    padding: 10,
-    paddingBottom: 4,
+    color: '#2563eb',
+    marginBottom: 2,
   },
-  subtitle: {
+  headerSubtitle: {
     fontSize: 14,
-    fontStyle: 'italic',
-    color: '#666',
-    textAlign: 'justify',
-    paddingTop: 0,
-    paddingBottom: 10,
-    paddingHorizontal: 20,
-
-
-
+    color: '#60a5fa',
+    fontWeight: '500',
+  },
+  mapWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+  },
+  mapCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fffaf0',
+    borderBottomWidth: 2,
+    borderBottomColor: '#dbeafe',
+  },
+  mapTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  selectedBadge: {
+    backgroundColor: '#60a5fa',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  selectedBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   mapContainer: {
-    height: Dimensions.get('window').height * 0.4, // Reducido para dejar más espacio a la lista
+    height: Dimensions.get('window').height * 0.4,
     overflow: 'hidden',
-    margin: 0,
-    marginBottom: 8, // Reducido para acercar la lista
-    elevation: 3,
-    shadowRadius: 3.84,
   },
   map: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
   },
-  infoBox: {
-    position: "absolute",
-    bottom: 30,
-    left: 20,
-    right: 20,
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 10,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  infoText: { fontSize: 16, fontWeight: "600", color: "#333" },
-  closeBtn: { color: "#2196F3", marginTop: 5, textAlign: "right" },
-  speciesList: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 5,
-    
-  },
-  speciesItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  selectedSpecies: {
-    backgroundColor: '#fff3e6',
-  },
-  speciesName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  probabilityText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  speciesContent: {
-    padding: 8,
-  },
-  helpText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 4,
-  },
-  optionButton: {
+  locationButton: {
     position: 'absolute',
-    bottom: 50,
-    right: 10,
-    backgroundColor: '#d2691edc',
-    padding: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  optionText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  legendContainer: {
-        
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    elevation: 5,
-  },
-  legendTitle: { fontWeight: 'bold', fontSize: 12, marginBottom: 5 },
-  legendBar: {
-    flexDirection: 'row',
-    borderRadius: 8,
+    bottom: 16,
+    right: 16,
+    borderRadius: 28,
     overflow: 'hidden',
+    shadowColor: '#16a34a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  legendLabels: {
+  locationButtonGradient: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectorWrapper: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  selectorCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 16,
+    zIndex: 1000,
+  },
+  selectorHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 3,
-    paddingHorizontal: 5,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
-  legendText: { fontSize: 8, color: '#333' },
-  toggleButton: {
-    position: 'absolute',
-    bottom: 100,
-    right: 10,
-    backgroundColor: '#d2691edc',
-    padding: 10,
-    borderRadius: 8,
-    elevation: 5,
-  },
-  toggleButtonText: { fontWeight: 'bold', color: '#333', fontSize: 12 },
-  label: {
+  selectorTitle: {
     fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 10,
-    color: "#333",
+    fontWeight: '700',
+    color: '#2563eb',
   },
   dropdown: {
-    backgroundColor: "transparent",
-    borderColor: "transparent",
-    borderBottomColor: "#ff9a41ff",
+    backgroundColor: '#fffaf0',
+    borderColor: '#60a5fa',
+    borderWidth: 2,
+    borderRadius: 12,
+    minHeight: 50,
   },
   dropdownContainer: {
-    borderColor: "#ff9a41ff",
-    backgroundColor: "#fffaf0",
+    borderColor: '#60a5fa',
+    borderWidth: 2,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 4,
   },
   dropdownText: {
     fontSize: 15,
     color: '#333',
+    fontWeight: '500',
   },
-  selectedText: {
-    marginTop: 20,
-    fontSize: 16,
-    color: "#ff7809ff",
-    fontWeight: "400",
+  selectedItemContainer: {
+    backgroundColor: '#dbeafe',
   },
-  constructionContainer: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#fff4e6',
-    borderWidth: 1,
-    borderColor: '#f0c7a3',
+  selectedItemLabel: {
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  infoCardsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  infoCardSmall: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  infoCardGradient: {
+    padding: 16,
     alignItems: 'center',
+    gap: 4,
   },
-  constructionText: {
-    color: '#8a4b00',
-    fontSize: 13,
-    textAlign: 'center',
+  infoCardNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2563eb',
+  },
+  infoCardLabel: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
   },
 });
