@@ -13,9 +13,12 @@ import Constants from 'expo-constants';
  * - Usa la URL de tu API en Azure/servidor
  */
 
-// 🔥 CONFIGURA AQUÍ TU URL DE NGROK cuando lo uses
-const NGROK_URL = ''; // API Gateway en local (no expuesto)
-const WEBSOCKET_URL = 'wss://virgilio-octamerous-darnell.ngrok-free.dev'; // Solo WebSocket expuesto
+// Leer variables de entorno desde .env
+const NGROK_URL = process.env.EXPO_PUBLIC_NGROK_URL || ''; // API Gateway en local (no expuesto)
+const WEBSOCKET_URL = process.env.EXPO_PUBLIC_WEBSOCKET_URL || 'wss://virgilio-octamerous-darnell.ngrok-free.dev';
+
+// eBird API Token
+export const EBIRD_API_TOKEN = process.env.EXPO_PUBLIC_EBIRD_API_TOKEN || '';
 
 const getApiUrl = () => {
   // Si hay URL de ngrok, úsala (funciona para todo: emulador y teléfono físico)
