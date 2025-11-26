@@ -14,7 +14,7 @@ from ..schemas import (
 
 router = APIRouter(prefix="/maps", tags=["maps"])
 
-MAPS_URL = os.getenv("MAPS_URL", "http://maps:8004")
+MAPS_URL = os.getenv("EXPO_PUBLIC_MAPS_URL", "http://maps:8004")
 
 
 @router.post("/predict")
