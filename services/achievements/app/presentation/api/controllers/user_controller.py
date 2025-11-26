@@ -81,13 +81,14 @@ async def process_sighting(
     if user_id != request.user_id:
         raise HTTPException(status_code=400, detail="User ID mismatch")
     
-    # Create sighting event
-    location = Location(latitude=request.location_lat, longitude=request.location_lon)
+    # Create sighting event with simplified data (only scientific and common name)
+    # Use default location (0, 0) since we don't require location
+    location = Location(latitude=0.0, longitude=0.0)
     sighting_event = SightingEvent(
         user_id=request.user_id,
         species_name=request.species_name,
         common_name=request.common_name,
-        confidence_score=request.confidence_score,
+        confidence_score=1.0,  # Default confidence since not required
         location=location,
         timestamp=request.timestamp
     )

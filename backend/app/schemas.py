@@ -42,14 +42,9 @@ class UserResponse(BaseModel):
 
 class SightingRequest(BaseModel):
     user_id: Optional[int] = None
-    species_name: str
-    common_name: Optional[str] = None
-    confidence_score: float
-    location_lat: float
-    location_lon: float
+    species_name: str  # Scientific name
+    common_name: Optional[str] = None  # Common name
     timestamp: Optional[datetime] = None
-    audio_url: Optional[str] = None
-    image_url: Optional[str] = None
 
 
 class SightingResponse(BaseModel):
@@ -57,9 +52,6 @@ class SightingResponse(BaseModel):
     user_id: int
     species_name: str
     common_name: Optional[str] = None
-    confidence_score: float
-    location_lat: float
-    location_lon: float
     timestamp: datetime
     status: str = "processed"
     achievements_unlocked: List[dict] = []

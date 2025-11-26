@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { theme } from "../../../styles/theme"; // Usa tu tema global si ya lo tienes
+import { SafeAreaView } from 'react-native-safe-area-context';  
+import { router } from "expo-router";
+import { useAvedex } from "../../../context/avedex-context";
+import { useBirdDetections } from "../../../context/bird-detection-context";
 import { View, Text, StyleSheet, Image, ActivityIndicator, ScrollView } from "react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -11,6 +20,51 @@ import * as Animatable from 'react-native-animatable';
 export default function ProfileScreen() {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const { clearCollection } = useAvedex();
+  const { clearDetections } = useBirdDetections();
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro que deseas cerrar sesión?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Cerrar Sesión",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log('🚪 Starting logout process...');
+              
+              // Clear collection from Avedex context
+              await clearCollection();
+              console.log('🗑️ Avedex collection cleared');
+              
+              // Clear detections from bird-detection context
+              clearDetections();
+              console.log('🗑️ Bird detections cleared');
+              
+              // Clear auth tokens
+              await AsyncStorage.removeItem('ACCESS_TOKEN');
+              await AsyncStorage.removeItem('USER_INFO');
+              console.log('🔑 Auth tokens cleared');
+              
+              console.log('✅ Logged out successfully');
+              
+              // Navigate to login
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Hubo un problema al cerrar sesión');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -411,5 +465,20 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(210, 105, 30, 0.1)',
     marginVertical: 16,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#dc2626',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginTop: 30,
+    gap: 8,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

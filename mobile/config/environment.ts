@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
  * Configuración de URLs del API según el entorno
  * 
  * DESARROLLO:
- * - NGROK_URL: Si está definida, usa ngrok (funciona en emulador Y teléfono físico)
+ * - NGROK_URL: Si está definida en .env, usa ngrok (funciona en emulador Y teléfono físico)
  * - Emulador Android: usa 10.0.2.2 (apunta a localhost de tu PC)
  * - Simulador iOS: usa localhost directamente
  * 
@@ -13,8 +13,8 @@ import Constants from 'expo-constants';
  * - Usa la URL de tu API en Azure/servidor
  */
 
-// Leer variables de entorno desde .env
-const NGROK_URL = process.env.EXPO_PUBLIC_NGROK_URL || ''; // API Gateway en local (no expuesto)
+// Leer API_BASE_URL desde app.config.js (que lee del .env)
+const NGROK_URL = (Constants.expoConfig as any)?.extra?.API_BASE_URL || '';
 const WEBSOCKET_URL = process.env.EXPO_PUBLIC_WEBSOCKET_URL || 'wss://virgilio-octamerous-darnell.ngrok-free.dev';
 
 // eBird API Token
@@ -30,16 +30,16 @@ const getApiUrl = () => {
   if (__DEV__) {
     // Emulador Android - IP especial que apunta a localhost de tu PC
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8000';
+      return 'http://10.0.2.2:8007';
     }
     
     // Simulador iOS - puede usar localhost directamente
     if (Platform.OS === 'ios') {
-      return 'http://localhost:8000';
+      return 'http://localhost:8007';
     }
     
     // Web (si usas Expo web)
-    return 'http://localhost:8000';
+    return 'http://localhost:8007';
   }
   
   // En producción (cuando hagas el build de la app)
