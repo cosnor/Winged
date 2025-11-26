@@ -70,6 +70,10 @@ export function BirdDetectionProvider({ children }: { children: ReactNode }) {
           commonName: detection.common_name || detection.species_name,
           scientificName: detection.scientific_name || detection.species_name,
           imageUrl: 'https://via.placeholder.com/150', // Imagen por defecto
+        }, {
+          confidence: detection.confidence,
+          lat: 0,
+          lon: 0
         });
       } else {
         console.log(`  ⏭️ Skipping (already in collection)`);

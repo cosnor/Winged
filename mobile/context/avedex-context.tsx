@@ -19,7 +19,7 @@ type AvedexAction =
   | { type: 'MARK_BIRDS_AS_SEEN'; payload: string[] };
 
 interface AvedexContextType extends AvedexState {
-  addBird: (bird: Omit<AvedexBird, 'firstSeenDate'>) => void;
+  addBird: (bird: Omit<AvedexBird, 'firstSeenDate'>, metadata?: { confidence?: number, lat?: number, lon?: number }) => void;
   hasBird: (id: string) => boolean;
   markBirdsAsSeen: (birdIds: string[]) => void;
   refresh: () => Promise<void>;
@@ -214,7 +214,7 @@ export function AvedexProvider({ children }: { children: React.ReactNode }) {
     fetchCollection();
   }, []);
 
-  const addBird = async (bird: Omit<AvedexBird, 'firstSeenDate'>) => {
+  const addBird = async (bird: Omit<AvedexBird, 'firstSeenDate'>, metadata?: { confidence?: number, lat?: number, lon?: number }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
@@ -244,9 +244,9 @@ export function AvedexProvider({ children }: { children: React.ReactNode }) {
             user_id: userId,
             species_name: bird.id, // Use the ID which should be the species_name
             common_name: bird.commonName,
-            location_lat: 0, // Default coordinates - could be improved with actual location
-            location_lon: 0,
-            confidence_score: 0.95, // High confidence for manually added birds
+            location_lat: metadata?.lat || 0, // Use provided location or default
+            location_lon: metadata?.lon || 0,
+            confidence_score: metadata?.confidence || 0.95, // Use provided confidence or default
             image_url: bird.imageUrl || null,
             audio_url: null,
           };
