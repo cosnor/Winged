@@ -1,9 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polygon } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 import { SpeciesDistribution } from '../../../../data/types';
+import { getDistribution } from '../../../../services/mapsService';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 // Centro exacto del polígono principal
 const BARRANQUILLA_REGION = {
@@ -44,9 +46,11 @@ export default function NearbyScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesDistribution | null>(null);
   const [probabilityText, setProbabilityText] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [radius, setRadius] = useState<number>(500); // Radio en metros
 
 
-  // Simulated species data - this should be fetched from your API
+  // Real species data from API
   const [speciesData, setSpeciesData] = useState<SpeciesDistribution[]>([
     {
       "species": "Pitangus sulphuratus",
@@ -1374,6 +1378,40 @@ export default function NearbyScreen() {
     console.log("Species Data:", speciesData);
   }, [selectedSpecies, speciesData]);
 
+  // Cargar distribución de especies desde el API
+  const loadDistribution = async (lat: number, lon: number) => {
+    try {
+      setIsLoading(true);
+      console.log(`🔍 Cargando distribución para: ${lat}, ${lon}`);
+      
+      const data = await getDistribution(lat, lon, radius, 0.002);
+      
+      if (data.species_distributions && data.species_distributions.length > 0) {
+        setSpeciesData(data.species_distributions);
+        Alert.alert(
+          '✅ Especies cargadas', 
+          `Se encontraron ${data.species_distributions.length} especies en un radio de ${radius}m`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          '⚠️ Sin resultados',
+          'No se encontraron especies en esta ubicación. Mostrando datos de ejemplo.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error loading distribution:', error);
+      Alert.alert(
+        '❌ Error de conexión',
+        'No se pudo conectar con el servidor. Verifica que el servicio de mapas esté corriendo en el puerto 8004.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -1385,6 +1423,12 @@ export default function NearbyScreen() {
       try {
         const userLocation = await Location.getCurrentPositionAsync({});
         setLocation(userLocation);
+        
+        // Cargar distribución automáticamente
+        await loadDistribution(
+          userLocation.coords.latitude,
+          userLocation.coords.longitude
+        );
       } catch (error) {
         setErrorMsg('No se pudo obtener la ubicación');
       }
@@ -1405,9 +1449,37 @@ export default function NearbyScreen() {
 
 
 
+  const handleReloadDistribution = () => {
+    if (location) {
+      loadDistribution(location.coords.latitude, location.coords.longitude);
+    } else {
+      Alert.alert('⚠️ Ubicación no disponible', 'Espera a que se obtenga tu ubicación');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>¡Encuentra aves cerca de ti!</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>¡Encuentra aves cerca de ti!</Text>
+        {location && (
+          <TouchableOpacity 
+            style={styles.reloadButton} 
+            onPress={handleReloadDistribution}
+            disabled={isLoading}
+          >
+            <Ionicons name="reload" size={20} color="#fff" />
+            <Text style={styles.reloadButtonText}>Recargar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#d2691e" />
+          <Text style={styles.loadingText}>Cargando especies cercanas...</Text>
+        </View>
+      )}
+      
       <View style={styles.mapContainer}>
         <Text style={styles.subtitle}>Selecciona una especie para ver su distribución</Text>
         <MapView
@@ -1454,7 +1526,7 @@ export default function NearbyScreen() {
           })}
         </MapView>
       </View>
-    <Text style={styles.subtitle}>Especies en un radio de 500 metros de ti</Text>
+    <Text style={styles.subtitle}>Especies en un radio de {radius} metros de ti</Text>
       <ScrollView style={styles.speciesList}>
         {speciesData.map((species) => (
           <TouchableOpacity
@@ -1506,13 +1578,50 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignContent: 'flex-start'
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#d2691e',
-    textAlign: 'center',
-    padding: 16,
-    paddingBottom: 4,
+    flex: 1,
+  },
+  reloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d2691e',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+  },
+  reloadButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 250, 240, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
   },
   subtitle: {
     fontSize: 14,
