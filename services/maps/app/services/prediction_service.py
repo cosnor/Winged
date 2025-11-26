@@ -156,7 +156,16 @@ def predict_distribution(lat: float, lon: float, timestamp: datetime,
 def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, grid_size: float = 0.001):
     """
     Predice distribución de especies dentro de la zona poligonal detectada.
+    Optimizado para procesamiento por lotes (vectorizado).
     """
+    import time
+    start_time = time.time()
+    
+    # Enforce minimum grid_size to avoid excessive computation
+    if grid_size < 0.001:
+        print(f"⚠️ grid_size {grid_size} too small, using minimum 0.001")
+        grid_size = 0.001
+    
     p = Point(lon, lat)
 
     # Identificar la zona
@@ -176,50 +185,90 @@ def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, gr
     zona_name, zona_geom = zona_row
     minx, miny, maxx, maxy = zona_geom.bounds  
 
+    # Generar grilla de puntos
     lats = np.arange(miny, maxy, grid_size)
     lons = np.arange(minx, maxx, grid_size)
-
-    results = []
-
+    
+    # Crear lista de puntos válidos dentro del polígono
+    valid_points = []
     for la in lats:
         for lo in lons:
-            pt = Point(lo, la)
-            if zona_geom.contains(pt):  
-                pred = predict_species(la, lo, timestamp)
-                results.append(pred)
+            if zona_geom.contains(Point(lo, la)):
+                valid_points.append((la, lo))
+    
+    if not valid_points:
+        return {
+            "zone": zona_name,
+            "location": {"lat": lat, "lon": lon},
+            "datetime": timestamp.isoformat(),
+            "species_distributions": []
+        }
 
-    # Construir species_distributions
+    # Preparar features para predicción en lote
+    day, month = timestamp.day, timestamp.month
+    day_sin = np.sin(2*np.pi*day/31)
+    day_cos = np.cos(2*np.pi*day/31)
+    month_sin = np.sin(2*np.pi*month/12)
+    month_cos = np.cos(2*np.pi*month/12)
+    
+    # Crear DataFrame con todos los puntos
+    df_points = pd.DataFrame(valid_points, columns=['lat_bin', 'lon_bin'])
+    df_points['elevation'] = 10
+    df_points['day_sin'] = day_sin
+    df_points['day_cos'] = day_cos
+    df_points['month_sin'] = month_sin
+    df_points['month_cos'] = month_cos
+    
+    # Asegurar orden de columnas
+    features = df_points[feature_cols]
+    
+    # Predecir probabilidades (vectorizado)
+    # model.predict_proba devuelve lista de arrays (n_samples, 2) por cada estimador
+    # Queremos shape (n_samples, n_species)
+    y_pred_list = [est.predict_proba(features)[:, 1] for est in model.estimators_]
+    y_pred_proba = np.vstack(y_pred_list).T  # shape (n_samples, n_species)
+    
+    # Procesar resultados
     species_distributions = []
-    if results:
-        species_list = [r["species"] for r in results[0]["species_probabilities"]]
-
-        for species in species_list:
-            areas = []
-            max_prob = 0
-
-            for r in results:
-                sp = next(s for s in r["species_probabilities"] if s["species"] == species)
-                prob = sp["probability"]
-
-                if prob > 0.1:  # pintar solo si relevante
-                    lat_c, lon_c = r["location"]["lat"], r["location"]["lon"]
-                    cell = [
-                        {"lat": lat_c - grid_size / 2, "lon": lon_c - grid_size / 2},
-                        {"lat": lat_c - grid_size / 2, "lon": lon_c + grid_size / 2},
-                        {"lat": lat_c + grid_size / 2, "lon": lon_c + grid_size / 2},
-                        {"lat": lat_c + grid_size / 2, "lon": lon_c - grid_size / 2}
-                    ]
-                    areas.append({"polygon": cell, "probability": prob})
-
-                    if prob > max_prob:
-                        max_prob = prob
-
-            if areas:
-                species_distributions.append({
-                    "species": species,
-                    "max_probability": max_prob,
-                    "areas": areas
-                })
+    
+    # Iterar por especie (columna)
+    for i, species_code in enumerate(species_cols):
+        species_name = species_mapping.get(str(species_code), str(species_code))
+        probs = y_pred_proba[:, i]
+        
+        # Filtrar puntos con probabilidad relevante (> 0.1)
+        mask = probs > 0.1
+        if not np.any(mask):
+            continue
+            
+        max_prob = float(np.max(probs))
+        areas = []
+        
+        # Obtener índices de puntos relevantes
+        relevant_indices = np.where(mask)[0]
+        
+        for idx in relevant_indices:
+            prob = float(probs[idx])
+            lat_c, lon_c = valid_points[idx]
+            
+            # Crear celda cuadrada
+            half_grid = grid_size / 2
+            cell = [
+                {"lat": lat_c - half_grid, "lon": lon_c - half_grid},
+                {"lat": lat_c - half_grid, "lon": lon_c + half_grid},
+                {"lat": lat_c + half_grid, "lon": lon_c + half_grid},
+                {"lat": lat_c + half_grid, "lon": lon_c - half_grid}
+            ]
+            areas.append({"polygon": cell, "probability": prob})
+            
+        species_distributions.append({
+            "species": species_name,
+            "max_probability": max_prob,
+            "areas": areas
+        })
+        
+    # Ordenar especies por probabilidad máxima
+    species_distributions.sort(key=lambda x: x["max_probability"], reverse=True)
 
     return {
         "zone": zona_name,
