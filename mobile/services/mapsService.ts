@@ -7,21 +7,24 @@ import { Platform } from 'react-native';
  * - Producción: URL del servidor
  */
 const getMapsApiUrl = () => {
-  // Si hay variable de entorno, usarla
-  const envUrl = process.env.EXPO_PUBLIC_MAPS_URL;
+  // Preferir variable de entorno pública de Expo, luego la variable API_BASE_URL del .env
+  const envUrl = process.env.EXPO_PUBLIC_MAPS_URL
   if (envUrl) {
     return envUrl;
   }
 
-  // En desarrollo
+  // En desarrollo: usar host accesible desde emuladores/dispositivo
   if (__DEV__) {
     if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8004';
+      // Android emulator: 10.0.2.2 apunta al localhost del host
+      return 'https://sabrina-blizzardly-nonequably.ngrok-free.dev/maps';
     }
     if (Platform.OS === 'ios') {
-      return 'http://localhost:8004';
+      // iOS simulator: localhost funciona
+      return 'https://sabrina-blizzardly-nonequably.ngrok-free.dev/maps';
     }
-    return 'http://localhost:8004';
+    // Web / otros
+    return 'https://sabrina-blizzardly-nonequably.ngrok-free.dev/maps';
   }
   
   // En producción
@@ -123,14 +126,15 @@ export const getDistribution = async (
  */
 export const getZones = async () => {
   try {
-    const response = await fetch(`${MAPS_API_URL}/zones`);
-    
+    const response = await fetch(`${MAPS_API_URL}/distribution-zone`);
+    console.log(response)
     if (!response.ok) {
       throw new Error(`Zones API error: ${response.status}`);
     }
 
     const data = await response.json();
     console.log('✅ Zones loaded');
+    console.log(data);
     return data;
   } catch (error) {
     console.error('❌ Error fetching zones:', error);
