@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAvedex } from '../../context/avedex-context';
+import { useBirdDetections } from '../../context/bird-detection-context';
 import { router } from 'expo-router';
 import * as Animatable from 'react-native-animatable';
 
@@ -12,8 +13,14 @@ interface BirdCardProps {
 }
 
 export default function BirdCard({ id, commonName, scientificName, imageUrl }: BirdCardProps) {
-  const { hasBird, addBird } = useAvedex();
-  const isInAvedex = hasBird(id);
+  const { hasBird, addBird, birds } = useAvedex();
+  const { removeBird } = useBirdDetections();
+  const [isInAvedex, setIsInAvedex] = useState(hasBird(id));
+
+  // Update isInAvedex when birds collection changes
+  useEffect(() => {
+    setIsInAvedex(hasBird(id));
+  }, [birds, id]);
 
   const handleAvedexPress = () => {
     if (!isInAvedex) {
@@ -31,11 +38,28 @@ export default function BirdCard({ id, commonName, scientificName, imageUrl }: B
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddBird = async () => {
+    if (isInAvedex) {
+      console.log(`⚠️ Bird ${id} already in Avedex, skipping`);
+      return;
+    }
+    
     setIsAdding(true);
     try {
       await addBird({id, commonName, scientificName, imageUrl});
+      // Update local state immediately
+      setIsInAvedex(true);
+      console.log(`✅ Bird ${id} added to Avedex, button hidden`);
+      
+      // Remove from detections list after successful add
+      setTimeout(() => {
+        removeBird(id);
+        console.log(`🗑️ Bird ${id} removed from detections list`);
+      }, 1000); // Wait 1 second to show the success state
+      
       // La animación durará 500ms
       await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error(`❌ Error adding bird ${id}:`, error);
     } finally {
       setIsAdding(false);
     }
@@ -51,7 +75,7 @@ export default function BirdCard({ id, commonName, scientificName, imageUrl }: B
         <Text style={styles.scientificName}>{scientificName}</Text>
         {!isInAvedex && <Text style={styles.newBadge}>Nueva</Text>}
       </View>
-      {!isInAvedex && (
+      {!isInAvedex ? (
         <TouchableOpacity 
           style={[styles.avedexButton, isAdding && styles.avedexButtonDisabled]}
           onPress={handleAddBird}
@@ -61,6 +85,10 @@ export default function BirdCard({ id, commonName, scientificName, imageUrl }: B
             {isAdding ? 'Agregando...' : 'Agregar a avedex'}
           </Text>
         </TouchableOpacity>
+      ) : (
+        <View style={styles.inAvedexContainer}>
+          <Text style={styles.inAvedexText}>✓ Ya en Avedex</Text>
+        </View>
       )}
     </Animatable.View>
   );
@@ -123,5 +151,18 @@ const styles = StyleSheet.create({
   avedexButtonDisabled: {
     backgroundColor: '#f0f0f0',
     borderColor: '#ccc',
+  },
+  inAvedexContainer: {
+    backgroundColor: '#e8f5e9',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#4caf50',
+  },
+  inAvedexText: {
+    color: '#2e7d32',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

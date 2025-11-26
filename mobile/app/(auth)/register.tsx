@@ -79,6 +79,39 @@ export default function Register() {
       }
 
       await AsyncStorage.setItem('ACCESS_TOKEN', token);
+      
+      console.log('✅ Registration successful, token saved');
+      console.log('📦 Full response body:', JSON.stringify(body, null, 2));
+      
+      // Fetch user info after successful registration
+      try {
+        console.log('👤 Fetching user info...');
+        const userResp = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('📥 User info response status:', userResp.status);
+        
+        if (userResp.ok) {
+          const userData = await userResp.json();
+          console.log('👤 User data received:', JSON.stringify(userData, null, 2));
+          
+          // Save user info
+          await AsyncStorage.setItem('USER_INFO', JSON.stringify(userData));
+          console.log('💾 User info saved to AsyncStorage');
+        } else {
+          console.warn('⚠️ Failed to fetch user info, status:', userResp.status);
+          const errorText = await userResp.text();
+          console.warn('⚠️ Error response:', errorText);
+        }
+      } catch (userError) {
+        console.error('❌ Error fetching user info:', userError);
+        // Don't fail the registration if user info fetch fails
+      }
+      
       setStatus({ type: 'success', message: 'Cuenta creada. Bienvenido!', visible: true });
       // Navigate to main app since backend auto-logged the user
       setTimeout(() => router.push('/(app)'), 400);

@@ -22,23 +22,15 @@ _SIGHTINGS_LOCK = asyncio.Lock()
 
 class SightingCreate(BaseModel):
     user_id: int
-    species_name: str
-    common_name: Optional[str] = None
-    confidence_score: float
-    location_lat: float
-    location_lon: float
+    species_name: str  # Scientific name
+    common_name: Optional[str] = None  # Common name
     timestamp: Optional[datetime] = None
-    audio_url: Optional[str] = None
-    image_url: Optional[str] = None
 
 class SightingResponse(BaseModel):
     id: int
     user_id: int
     species_name: str
     common_name: Optional[str] = None
-    confidence_score: float
-    location_lat: float
-    location_lon: float
     timestamp: datetime
     status: str = "processed"
     achievements_unlocked: List[dict] = []
@@ -66,56 +58,50 @@ async def create_sighting(sighting: SightingCreate):
     # reasonably unique across rapid calls.
     sighting_id = int(time.time() * 1000)
     
-    # Notify achievements service
+    # Notify achievements service with simplified payload
     achievements_unlocked = []
     try:
         async with httpx.AsyncClient() as client:
             achievement_data = {
                 "user_id": sighting.user_id,
                 "species_name": sighting.species_name,
-                "confidence": sighting.confidence_score,
-                "location": {
-                    "latitude": sighting.location_lat,
-                    "longitude": sighting.location_lon
-                },
-                "detection_time": sighting.timestamp.isoformat()
+                "common_name": sighting.common_name,
+                "timestamp": sighting.timestamp.isoformat()
             }
             
+            print(f"📤 Sending to achievements: {achievement_data}")
+            
             response = await client.post(
-                f"{ACHIEVEMENTS_URL}/species/detect",
+                f"{ACHIEVEMENTS_URL}/users/{sighting.user_id}/sightings",
                 json=achievement_data,
                 timeout=10.0
             )
             
+            print(f"📥 Response from achievements: {response.status_code}")
+            
             if response.status_code == 200:
-                # Normalize possible shapes from achievements service:
-                # - bare list: [...]
-                # - wrapper dict: {"success": True, "message": "...", "data": [...]}
-                # - single dict representing one achievement: {...}
-                # - empty or non-JSON -> treat as []
+                # The /users/{user_id}/sightings endpoint returns:
+                # {"message": "...", "newly_unlocked_achievements": [...]}
                 try:
                     body = response.json()
+                    print(f"📦 Response body: {body}")
                 except ValueError:
                     body = None
 
-                if isinstance(body, dict) and "data" in body:
-                    norm = body.get("data") or []
-                    # if data is a single dict, wrap it
-                    if isinstance(norm, dict):
-                        norm = [norm]
-                    achievements_unlocked = norm
-                elif isinstance(body, list):
-                    achievements_unlocked = body
-                elif isinstance(body, dict):
-                    # single achievement -> wrap into list
-                    achievements_unlocked = [body]
+                if isinstance(body, dict):
+                    # Extract newly_unlocked_achievements from response
+                    unlocked = body.get("newly_unlocked_achievements", [])
+                    if isinstance(unlocked, list):
+                        achievements_unlocked = unlocked
+                    else:
+                        achievements_unlocked = []
                 else:
                     achievements_unlocked = []
             else:
-                print(f"Failed to process achievements: {response.status_code}")
+                print(f"❌ Failed to process achievements: {response.status_code} - {response.text}")
                 
     except Exception as e:
-        print(f"Error communicating with achievements service: {e}")
+        print(f"❌ Error communicating with achievements service: {e}")
         # Don't fail the sighting creation if achievements service is down
     
     # Build the sighting object that we'll persist in the in-memory DB and
@@ -126,9 +112,6 @@ async def create_sighting(sighting: SightingCreate):
         "user_id": sighting.user_id,
         "species_name": sighting.species_name,
         "common_name": sighting.common_name,
-        "confidence_score": sighting.confidence_score,
-        "location_lat": sighting.location_lat,
-        "location_lon": sighting.location_lon,
         "timestamp": sighting.timestamp,
         "status": "processed",
         "achievements_unlocked": achievements_unlocked,
@@ -138,6 +121,7 @@ async def create_sighting(sighting: SightingCreate):
     async with _SIGHTINGS_LOCK:
         _SIGHTINGS_DB[sighting_id] = sighting_obj
 
+    print(f"✅ Sighting created: ID={sighting_id}, Species={sighting.species_name}")
     return SightingResponse(**sighting_obj)
 
 @app.get("/sightings/{sighting_id}", response_model=SightingResponse)
@@ -162,7 +146,6 @@ def get_user_sightings(user_id: int, limit: int = 50):
                 "id": s["id"],
                 "species_name": s["species_name"],
                 "common_name": s.get("common_name"),
-                "confidence_score": s["confidence_score"],
                 "timestamp": s["timestamp"].isoformat() if isinstance(s["timestamp"], datetime) else s["timestamp"],
             })
             if len(results) >= limit:
