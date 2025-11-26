@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image, ActivityIndicator, Alert, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Image, ActivityIndicator, Alert, ScrollView, TouchableOpacity } from "react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -267,6 +267,21 @@ export default function ProfileScreen() {
               </View>
             </View>
           </Animatable.View>
+            
+          {/* Botón de cerrar sesión */}
+          <Animatable.View animation="bounceIn" duration={800} delay={700}>
+            <TouchableOpacity onPress={handleLogout} activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#dc2626', '#991b1b']}
+                style={styles.logoutButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="log-out-outline" size={24} color="#fff" />
+                <Text style={styles.logoutText}>Cerrar Sesión</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animatable.View>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -463,16 +478,22 @@ const styles = StyleSheet.create({
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#dc2626',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
-    marginTop: 30,
-    gap: 8,
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    marginTop: 32,
+    gap: 10,
+    shadowColor: '#dc2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   logoutText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

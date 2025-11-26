@@ -72,11 +72,6 @@ export default function NearbyScreen() {
       
       if (data.species_distributions && data.species_distributions.length > 0) {
         setSpeciesData(data.species_distributions);
-        Alert.alert(
-          '✅ Especies cargadas', 
-          `Se encontraron ${data.species_distributions.length} especies en un radio de ${radius}m`,
-          [{ text: 'OK' }]
-        );
       } else {
         Alert.alert(
           '⚠️ Sin resultados',
@@ -157,7 +152,7 @@ export default function NearbyScreen() {
             </LinearGradient>
             <View style={styles.headerText}>
               <Text style={styles.title}>Aves Cerca de Ti</Text>
-              <Text style={styles.headerSubtitle}>📍 Descubre especies en tu zona</Text>
+              <Text style={styles.headerSubtitle}>Descubre especies en tu zona</Text>
             </View>
           </View>
         </Animatable.View>
@@ -182,6 +177,7 @@ export default function NearbyScreen() {
           </View>
         )}
       
+        {/* Mapa fijo en la parte superior */}
         <Animatable.View animation="fadeIn" duration={600} delay={200} style={styles.mapWrapper}>
           <View style={styles.mapCard}>
             <View style={styles.mapHeader}>
@@ -258,6 +254,7 @@ export default function NearbyScreen() {
           </View>
         </Animatable.View>
 
+        {/* Lista de especies con scroll independiente */}
         <Animatable.View animation="fadeInUp" duration={600} delay={400} style={styles.listWrapper}>
           <View style={styles.listHeader}>
             <Ionicons name="list" size={20} color="#d2691e" />
@@ -266,7 +263,11 @@ export default function NearbyScreen() {
               <Text style={styles.speciesCountText}>{speciesData.length}</Text>
             </View>
           </View>
-          <ScrollView style={styles.speciesList} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.speciesList} 
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+          >
             {speciesData.map((species, index) => (
               <Animatable.View
                 key={species.species}
@@ -338,7 +339,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 10,
     paddingBottom: 16,
   },
   headerContent: {
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     color: '#d2691e',
   },
   mapContainer: {
-    height: Dimensions.get('window').height * 0.35,
+    height: Dimensions.get('window').height * 0.28,
     overflow: 'hidden',
   },
   map: {
