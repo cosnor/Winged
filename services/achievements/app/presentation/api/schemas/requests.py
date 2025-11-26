@@ -6,11 +6,8 @@ from datetime import datetime
 class SightingEventRequest(BaseModel):
     """Request schema for sighting events"""
     user_id: int
-    species_name: str
-    common_name: Optional[str] = None
-    confidence_score: float
-    location_lat: float
-    location_lon: float
+    species_name: str  # Scientific name
+    common_name: Optional[str] = None  # Common name
     timestamp: datetime
 
 

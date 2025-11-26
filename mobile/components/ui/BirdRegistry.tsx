@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Animatable from 'react-native-animatable';
 import BirdCard from '../cards/BirdCard';
 
 export interface Bird {
@@ -20,9 +22,38 @@ export default function BirdRegistry({ birds, title = "Registro de Identificacio
     return (
       <View style={styles.container}>
         <Text style={styles.title}>{title}</Text>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No hay aves identificadas aún</Text>
-        </View>
+        <Animatable.View 
+          animation="fadeIn" 
+          duration={800}
+          style={styles.emptyState}
+        >
+          <Animatable.View
+            animation="pulse"
+            iterationCount="infinite"
+            duration={2000}
+            style={styles.emptyIconContainer}
+          >
+            <Ionicons name="musical-notes-outline" size={60} color="#d2691e" />
+          </Animatable.View>
+          <Text style={styles.emptyTitle}>Aún no hay identificaciones</Text>
+          <Text style={styles.emptySubtext}>
+            Sube o graba el canto de un ave para comenzar
+          </Text>
+          <View style={styles.emptyStepsContainer}>
+            <View style={styles.emptyStep}>
+              <Ionicons name="cloud-upload" size={24} color="#ff9a41" />
+              <Text style={styles.emptyStepText}>Sube audio</Text>
+            </View>
+            <View style={styles.emptyStep}>
+              <Ionicons name="scan" size={24} color="#ff9a41" />
+              <Text style={styles.emptyStepText}>Analiza</Text>
+            </View>
+            <View style={styles.emptyStep}>
+              <Ionicons name="checkmark-circle" size={24} color="#ff9a41" />
+              <Text style={styles.emptyStepText}>Identifica</Text>
+            </View>
+          </View>
+        </Animatable.View>
       </View>
     );
   }
@@ -30,7 +61,12 @@ export default function BirdRegistry({ birds, title = "Registro de Identificacio
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
+      >
         {birds.map((bird) => (
           <BirdCard
             key={bird.id}
@@ -49,33 +85,73 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#fffaf0',
-    padding: 0
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#d2691e',
     textAlign: 'center',
-    marginVertical: 5,
+    marginVertical: 16,
   },
   scrollView: {
     flex: 1,
     width: '100%',
-    marginTop: 20,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    borderTopColor: '#d2691e',
-    padding: 10
+    borderTopWidth: 2,
+    borderTopColor: '#ff9a41',
+    paddingTop: 16,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
   },
-  emptyText: {
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 154, 65, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 154, 65, 0.3)',
+    borderStyle: 'dashed',
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#d2691e',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
     color: '#666',
-    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 28,
+    lineHeight: 20,
+  },
+  emptyStepsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 8,
+  },
+  emptyStep: {
+    alignItems: 'center',
+    flex: 1,
+    paddingHorizontal: 8,
+  },
+  emptyStepText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });

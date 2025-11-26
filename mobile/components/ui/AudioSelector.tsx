@@ -157,8 +157,8 @@ export default function AudioSelector({ onDetectionsComplete }: AudioSelectorPro
           disabled={analyzing || !connected}
         >
           <Ionicons 
-            name={analyzing ? "hourglass" : "search"} 
-            size={20} 
+            name={analyzing ? "hourglass" : "search-circle"} 
+            size={22} 
             color="#fff" 
           />
           <Text style={styles.analyzeButtonText}>
@@ -174,67 +174,89 @@ export default function AudioSelector({ onDetectionsComplete }: AudioSelectorPro
 
 const styles = StyleSheet.create({
   container: {
-    width: '80%',
+    width: '100%',
     alignItems: 'center',
-    marginVertical: 5,
+    gap: 16,
   },
   fileButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d2691e',
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#ff9a41',
     width: '100%',
+    shadowColor: '#ff6b35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   fileButtonText: {
-    marginLeft: 10,
+    flex: 1,
+    marginLeft: 12,
     color: '#d2691e',
     fontSize: 16,
+    fontWeight: '600',
   },
   controls: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 10,
-    gap: 20,
+    gap: 16,
   },
   controlButton: {
-    padding: 10,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#fff',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#d2691e',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#d2691e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   analyzeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#d2691e',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 15,
+    padding: 16,
+    borderRadius: 16,
     width: '100%',
-    gap: 8,
+    gap: 10,
+    shadowColor: '#d2691e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: '#ff9a41',
   },
   analyzeButtonDisabled: {
     opacity: 0.6,
   },
   analyzeButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '800',
   },
   connectionStatus: {
-    fontSize: 12,
-    color: '#ff6b6b',
+    fontSize: 13,
+    color: '#ff6b35',
     marginBottom: 10,
     textAlign: 'center',
+    fontWeight: '600',
   },
   errorText: {
-    fontSize: 12,
-    color: '#ff6b6b',
+    fontSize: 13,
+    color: '#ff6b35',
     marginTop: 10,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });
