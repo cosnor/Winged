@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, Image, ActivityIndicator, Alert, ScrollView } from "react-native";
 import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -8,12 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from "expo-router";
 import { useAvedex } from "../../../context/avedex-context";
 import { useBirdDetections } from "../../../context/bird-detection-context";
-import { View, Text, StyleSheet, Image, ActivityIndicator, ScrollView } from "react-native";
-import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { theme } from "../../../styles/theme";
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';  
 
@@ -250,7 +244,7 @@ export default function ProfileScreen() {
                     <Ionicons name="calendar" size={20} color="#ff9a41" />
                     <View style={styles.infoTextContainer}>
                       <Text style={styles.infoLabel}>Miembro desde</Text>
-                      <Text style={styles.infoValue}>Enero 2025</Text>
+                      <Text style={styles.infoValue}>Noviembre 2025</Text>
                     </View>
                   </View>
                   <View style={styles.divider} />

@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Animatable from 'react-native-animatable';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme } from "../../styles/theme";
 
-export default function HomeScreen({ userName = "Alberto" }) {
-
-    const [streak, setStreak] = useState(7);
+export default function HomeScreen() {
+    const [userName, setUserName] = useState("Usuario");
+    const [streak, setStreak] = useState(0);
     const [dailyFact, setDailyFact] = useState("");
     const [dailyChallenge, setDailyChallenge] = useState("");
     const [challengeDone, setChallengeDone] = useState(false);
@@ -20,6 +21,26 @@ export default function HomeScreen({ userName = "Alberto" }) {
     });
 
     const dateStr = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+
+    // Load user info from AsyncStorage
+    useEffect(() => {
+        const loadUserInfo = async () => {
+            try {
+                const userInfoStr = await AsyncStorage.getItem('USER_INFO');
+                if (userInfoStr) {
+                    const userInfo = JSON.parse(userInfoStr);
+                    // Try different possible field names for the username
+                    const name = userInfo.name || userInfo.username || userInfo.email?.split('@')[0] || "Usuario";
+                    setUserName(name);
+                    console.log('👤 Loaded user name:', name);
+                }
+            } catch (error) {
+                console.error('❌ Error loading user info:', error);
+            }
+        };
+
+        loadUserInfo();
+    }, []);
 
     useEffect(() => {
         setDailyFact("Las aves migratorias pueden viajar hasta 20,000 km al año.");
