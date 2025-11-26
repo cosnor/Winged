@@ -14,7 +14,7 @@ import * as Animatable from 'react-native-animatable';
 export default function ProfileScreen() {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const { clearCollection } = useAvedex();
+  const { clearCollection, birds } = useAvedex();
   const { clearDetections } = useBirdDetections();
 
   const handleLogout = () => {
@@ -98,8 +98,10 @@ export default function ProfileScreen() {
           setUser({
             name: data.name || data.full_name || "Usuario",
             email: data.email || "",
-            birdsCollected: 0,
-            lastSighting: "-",
+            birdsCollected: birds.length, // Use real count from Avedex context
+            lastSighting: birds.length > 0 
+              ? new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+              : "-",
             streakDays: data.xp || 0,
             avatar: "https://ralfvanveen.com/wp-content/uploads/2021/06/Placeholder-_-Begrippenlijst.svg",
           });

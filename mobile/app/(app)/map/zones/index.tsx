@@ -73,6 +73,10 @@ export default function ZonesScreen() {
     zones.map((z) => ({ label: z.nombre, value: z.id }))
   );
 
+  const mapRef = useRef<MapView>(null);
+  const [zonesFeatures, setZonesFeatures] = useState<Feature[]>([]);
+  const [loadingZones, setLoadingZones] = useState<boolean>(false);
+
   
   const toggleOutlineMode = () => setOutlineMode(!outlineMode);
 
@@ -116,7 +120,7 @@ export default function ZonesScreen() {
 
   // Fetch zone distribution when dropdown value changes
   useEffect(() => {
-    if (value !== null && value !== 0 && location) {
+    if (value !== null && value !== 0) {
       const fetchZoneDistribution = async () => {
         try {
           setLoadingDistribution(true);
@@ -124,10 +128,34 @@ export default function ZonesScreen() {
           
           console.log(`📍 Fetching distribution for zone: ${zoneName}`);
           
-          const response = await getZoneDistribution(
-            location.coords.latitude,
-            location.coords.longitude
+          // Find the zone polygon from the features
+          const zoneFeatures = zonesFeatures.length ? zonesFeatures : zonas.features;
+          const zoneFeature = zoneFeatures.find((f: Feature) => 
+            f.properties.name.toLowerCase().includes(zoneName.toLowerCase()) ||
+            zoneName.toLowerCase().includes(f.properties.name.toLowerCase())
           );
+
+          if (!zoneFeature) {
+            console.error(`❌ Zone feature not found for: ${zoneName}`);
+            Alert.alert('Error', 'No se pudo encontrar la zona seleccionada');
+            setLoadingDistribution(false);
+            return;
+          }
+
+          // Calculate centroid of the zone polygon
+          const coords = zoneFeature.geometry.coordinates[0];
+          let sumLon = 0;
+          let sumLat = 0;
+          coords.forEach((coord: number[]) => {
+            sumLon += coord[0];
+            sumLat += coord[1];
+          });
+          const lon = sumLon / coords.length;
+          const lat = sumLat / coords.length;
+          
+          console.log(`📍 Using zone centroid: lat=${lat}, lon=${lon} for ${zoneName}`);
+          
+          const response = await getZoneDistribution(lat, lon);
 
           console.log('✅ Distribution response:', response);
           
@@ -138,6 +166,16 @@ export default function ZonesScreen() {
               lat: response.location.lat,
               lon: response.location.lon
             });
+
+            // Animate map to the zone centroid
+            if (mapRef.current) {
+              mapRef.current.animateToRegion({
+                latitude: lat,
+                longitude: lon,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+              }, 1000);
+            }
           }
         } catch (error) {
           console.error('❌ Error fetching zone distribution:', error);
@@ -153,7 +191,7 @@ export default function ZonesScreen() {
       setSelectedZoneName(null);
       setSelectedZoneCoords(null);
     }
-  }, [value, location]);
+  }, [value, zonesFeatures]);
 
   
 
@@ -166,10 +204,6 @@ export default function ZonesScreen() {
     return "#cccccc";
   };
 
-
-  const mapRef = useRef<MapView>(null);
-  const [zonesFeatures, setZonesFeatures] = useState<Feature[]>([]);
-  const [loadingZones, setLoadingZones] = useState<boolean>(false);
   
   useEffect(() => {
     // Cargar zonas desde el backend al montar

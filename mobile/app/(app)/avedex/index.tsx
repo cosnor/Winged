@@ -16,15 +16,29 @@ export default function AvedexScreen() {
   const [sortBy, setSortBy] = useState<'alphabetical' | 'date'>('date');
   const navigation = useNavigation();
 
-  // Ordenar aves según criterio seleccionado
+  // Ordenar aves según criterio seleccionado y eliminar duplicados
   const sortedBirds = React.useMemo(() => {
     if (!birds) return [];
-    const birdsCopy = [...birds];
     
+    // Primero, eliminar duplicados usando Map con species_name como key
+    const uniqueBirdsMap = new Map();
+    birds.forEach((bird) => {
+      // Use scientificName (species_name) as unique identifier
+      if (!uniqueBirdsMap.has(bird.scientificName)) {
+        uniqueBirdsMap.set(bird.scientificName, bird);
+      } else {
+        console.log(`🗑️ Duplicate found and removed: ${bird.scientificName} (${bird.commonName})`);
+      }
+    });
+    
+    const uniqueBirds = Array.from(uniqueBirdsMap.values());
+    console.log(`🔍 Filtering duplicates: ${birds.length} → ${uniqueBirds.length} unique birds`);
+    
+    // Luego ordenar según el criterio
     if (sortBy === 'alphabetical') {
-      return birdsCopy.sort((a, b) => a.commonName.localeCompare(b.commonName));
+      return uniqueBirds.sort((a, b) => a.commonName.localeCompare(b.commonName));
     } else {
-      return birdsCopy.sort((a, b) => 
+      return uniqueBirds.sort((a, b) => 
         new Date(b.firstSeenDate).getTime() - new Date(a.firstSeenDate).getTime()
       );
     }
@@ -261,7 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#d2691e',
-    padding: 25,
+    padding: 15,
   },
   headerContainer: {
     paddingHorizontal: 16,

@@ -172,7 +172,9 @@ export function AvedexProvider({ children }: { children: React.ReactNode }) {
                         commonName: b.common_name || speciesName,
                         scientificName: speciesName,
                         imageUrl: b.image_url || 'https://via.placeholder.com/150',
-                        firstSeenDate: b.first_sighted_at || new Date().toLocaleDateString(),
+                        firstSeenDate: b.first_sighted_at 
+                          ? new Date(b.first_sighted_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+                          : new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
                         isNew: false 
                     });
                 }
@@ -309,7 +311,7 @@ export function AvedexProvider({ children }: { children: React.ReactNode }) {
       console.log('💾 Adding bird locally as fallback...');
       const newBird: AvedexBird = {
         ...bird,
-        firstSeenDate: new Date().toLocaleDateString(),
+        firstSeenDate: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
         isNew: true
       };
 
