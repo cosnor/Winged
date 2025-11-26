@@ -157,6 +157,14 @@ def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, gr
     """
     Predice distribución de especies dentro de la zona poligonal detectada.
     """
+    import time
+    start_time = time.time()
+    
+    # Enforce minimum grid_size to avoid excessive computation
+    if grid_size < 0.001:
+        print(f"⚠️ grid_size {grid_size} too small, using minimum 0.001")
+        grid_size = 0.001
+    
     p = Point(lon, lat)
 
     # Identificar la zona
@@ -178,8 +186,24 @@ def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, gr
 
     lats = np.arange(miny, maxy, grid_size)
     lons = np.arange(minx, maxx, grid_size)
+    
+    total_points = len(lats) * len(lons)
+    print(f"📊 Zone: {zona_name}")
+    print(f"📐 Grid: {len(lats)} x {len(lons)} = {total_points} potential points")
+    print(f"🔍 Grid size: {grid_size} degrees (~{grid_size * 111:.0f}m)")
+
+    # Limit maximum points to avoid timeout
+    MAX_POINTS = 500
+    if total_points > MAX_POINTS:
+        # Adjust grid_size to stay under limit
+        scale_factor = np.sqrt(total_points / MAX_POINTS)
+        grid_size = grid_size * scale_factor
+        lats = np.arange(miny, maxy, grid_size)
+        lons = np.arange(minx, maxx, grid_size)
+        print(f"⚠️ Too many points! Adjusting grid_size to {grid_size:.4f} ({len(lats)} x {len(lons)} = {len(lats) * len(lons)} points)")
 
     results = []
+    points_processed = 0
 
     for la in lats:
         for lo in lons:
@@ -187,6 +211,9 @@ def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, gr
             if zona_geom.contains(pt):  
                 pred = predict_species(la, lo, timestamp)
                 results.append(pred)
+                points_processed += 1
+    
+    print(f"✅ Processed {points_processed} points inside zone in {time.time() - start_time:.2f}s")
 
     # Construir species_distributions
     species_distributions = []

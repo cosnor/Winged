@@ -118,7 +118,7 @@ async def distribution_zone(payload: DistributionRequest):
     Forwards request to the maps service and returns species distributions for
     the requested point/grid.
     """
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         try:
             # use by_alias=True so the JSON key "datetime" (alias) is used
             resp = await client.post(f"{MAPS_URL}/distribution-zone", json=jsonable_encoder(payload, by_alias=True))
