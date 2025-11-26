@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BirdDetection } from "../hooks/useBirdAnalysis";
-import { API_BASE_URL } from "../config/environment";
 
 // Tipo de ave identificada para el registro
 export interface IdentifiedBird {
@@ -29,7 +27,7 @@ const BirdDetectionContext = createContext<BirdDetectionContextType>({
 export function BirdDetectionProvider({ children }: { children: ReactNode }) {
   const [identifiedBirds, setIdentifiedBirds] = useState<IdentifiedBird[]>([]);
 
-  const addDetections = async (detections: BirdDetection[]) => {
+  const addDetections = (detections: BirdDetection[]) => {
     // Convertir detecciones a aves identificadas
     const newBirds: IdentifiedBird[] = detections.map((detection, index) => ({
       id: `${Date.now()}_${index}`,
@@ -45,53 +43,6 @@ export function BirdDetectionProvider({ children }: { children: ReactNode }) {
     setIdentifiedBirds(prev => [...newBirds, ...prev]);
 
     console.log('✅ Agregadas', newBirds.length, 'nuevas detecciones al registro');
-
-    // Register with backend (Avedex)
-    try {
-      const userInfoStr = await AsyncStorage.getItem('USER_INFO');
-      const token = await AsyncStorage.getItem('ACCESS_TOKEN');
-      
-      if (userInfoStr && token) {
-        const userInfo = JSON.parse(userInfoStr);
-        const userId = userInfo.user_id || userInfo.id;
-
-        for (const detection of detections) {
-           const payload = {
-             user_id: userId,
-             species_name: detection.species_name,
-             common_name: detection.common_name || detection.species_name,
-             confidence_score: detection.confidence,
-             lat: 0, // TODO: Get real location
-             lon: 0,
-             timestamp: new Date().toISOString()
-           };
-
-           console.log('📤 Registering sighting:', payload);
-           
-           // Fire and forget registration
-           fetch(`${API_BASE_URL}/sightings/`, {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json',
-               'Authorization': `Bearer ${token}`
-             },
-             body: JSON.stringify(payload)
-           }).then(async res => {
-             if (res.ok) {
-                console.log('✅ Sighting registered successfully');
-                // Optionally trigger Avedex refresh if we had a context for it
-             } else {
-                const text = await res.text();
-                console.error('❌ Failed to register sighting:', res.status, text);
-             }
-           }).catch(err => console.error('❌ Error registering sighting:', err));
-        }
-      } else {
-        console.warn('⚠️ No user info or token found, skipping backend registration');
-      }
-    } catch (error) {
-      console.error('❌ Error processing detections for backend:', error);
-    }
   };
 
   const clearDetections = () => {
