@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { API_BASE_URL, WS_BASE_URL } from '../config/environment';
+import { API_BASE_URL, WS_BASE_URL, EBIRD_API_TOKEN } from '../config/environment';
 import { useBirdDetections } from '../context/bird-detection-context';
 
 export interface BirdDetection {
   species_name: string;
+  species_code: string;
   confidence: number;
   start_time: number;
   end_time: number;
@@ -35,8 +36,74 @@ export function useBirdAnalysis(): UseBirdAnalysisReturn {
   const [error, setError] = useState<string | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<any>(null);
   const { addDetections } = useBirdDetections();
+
+  // Función para obtener información de eBird API
+  const enrichWithEBirdData = async (detections: BirdDetection[]): Promise<BirdDetection[]> => {
+    const enrichedDetections = await Promise.all(
+      detections.map(async (detection) => {
+        try {
+          // Si no tiene species_code, retornar sin cambios
+          if (!detection.species_code) {
+            console.warn('⚠️ Detección sin species_code:', detection.species_name);
+            return detection;
+          }
+
+          const url = `https://api.ebird.org/v2/ref/taxonomy/ebird?species=${detection.species_code}&fmt=json`;
+          console.log(`🔍 Consultando eBird API: ${url}`);
+
+          const response = await fetch(url, {
+            headers: {
+              'X-eBirdApiToken': EBIRD_API_TOKEN
+            }
+          });
+
+          console.log(`📡 eBird response status para ${detection.species_code}:`, response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+              const speciesData = data[0];
+              console.log(`✅ Datos eBird para ${detection.species_code}:`, speciesData);
+              return {
+                ...detection,
+                scientific_name: speciesData.sciName || detection.scientific_name,
+                common_name: speciesData.comName || detection.species_name
+              };
+            }
+          } else {
+            const errorText = await response.text();
+            console.warn(`⚠️ eBird API error ${response.status} para ${detection.species_code}:`, errorText.substring(0, 200));
+          }
+        } catch (error) {
+          console.error(`❌ Error obteniendo datos de eBird para ${detection.species_code}:`, error);
+        }
+        
+        return detection;
+      })
+    );
+
+    return enrichedDetections;
+  };
+
+  // Función para filtrar detecciones únicas por species_code
+  const getUniqueDetections = (detections: BirdDetection[]): BirdDetection[] => {
+    const uniqueMap = new Map<string, BirdDetection>();
+    
+    detections.forEach(detection => {
+      const key = detection.species_code;
+      const existing = uniqueMap.get(key);
+      
+      // Mantener la detección con mayor confianza
+      if (!existing || detection.confidence > existing.confidence) {
+        uniqueMap.set(key, detection);
+      }
+    });
+    
+    return Array.from(uniqueMap.values());
+  };
 
   // Obtener la URL del WebSocket desde la configuración
   const getWebSocketUrl = () => {
@@ -58,7 +125,7 @@ export function useBirdAnalysis(): UseBirdAnalysisReturn {
         setError(null);
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
           const message = JSON.parse(event.data);
           console.log('📨 Mensaje completo recibido:', JSON.stringify(message, null, 2));
@@ -76,14 +143,27 @@ export function useBirdAnalysis(): UseBirdAnalysisReturn {
             case 'analysis_completed':
               setAnalyzing(false);
               // Las detecciones están en message.result.detections
-              const newDetections = message.result?.detections || message.detections || message.analysis?.detections || [];
-              setDetections(newDetections);
+              const rawDetections = message.result?.detections || message.detections || message.analysis?.detections || [];
+              
+              console.log('📊 Detecciones brutas:', rawDetections.length);
+              
+              // 1. Filtrar detecciones únicas por species_code
+              const uniqueDetections = getUniqueDetections(rawDetections);
+              console.log('🔍 Detecciones únicas:', uniqueDetections.length);
+              
+              // 2. Enriquecer con datos de eBird
+              const enrichedDetections = await enrichWithEBirdData(uniqueDetections);
+              console.log('✨ Detecciones enriquecidas:', enrichedDetections.length);
+              
+              setDetections(enrichedDetections);
+              
               // Agregar las detecciones al contexto global
-              if (newDetections.length > 0) {
-                addDetections(newDetections);
+              if (enrichedDetections.length > 0) {
+                addDetections(enrichedDetections);
               }
-              console.log('✅ Análisis completado:', newDetections.length, 'detecciones');
-              console.log('🐦 Detecciones:', JSON.stringify(newDetections, null, 2));
+              
+              console.log('✅ Análisis completado:', enrichedDetections.length, 'especies únicas');
+              console.log('🐦 Detecciones finales:', JSON.stringify(enrichedDetections, null, 2));
               break;
 
             case 'analysis_progress':
