@@ -4,7 +4,10 @@ import {
   Text,
   View,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import AudioSelector from "../../../components/ui/AudioSelector";
 import BirdRegistry from "../../../components/ui/BirdRegistry";
 import { router } from "expo-router";
@@ -15,84 +18,91 @@ export default function AudioUploadScreen() {
   const { identifiedBirds } = useBirdDetections();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Identifica tu Ave</Text>
-        <Text style={styles.subtitle}>Sube un audio</Text>
-        <AudioSelector />
-        <TouchableOpacity onPress={() => router.push("/identify/record")}>
-            <Text style={styles.registerText}>
-              ¿Prefieres grabar?{" "}
-              <Text style={{ color: "#d2691e", fontWeight: "bold" }}>
-                Hazlo aquí
-              </Text>
-            </Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.registryContainer}>
-        <BirdRegistry birds={identifiedBirds} />
-      </View>
-    </SafeAreaView>
+    <LinearGradient
+      colors={['#fffaf0', '#ffe4d6', '#ffd4ba']}
+      style={styles.gradient}
+    >
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Identifica tu Ave</Text>
+            <Text style={styles.subtitle}>🎵 Sube un archivo de audio</Text>
+          </View>
+          
+          <View style={styles.selectorWrapper}>
+            <AudioSelector />
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.switchButton}
+            onPress={() => router.push("/identify/record")}
+          >
+            <Ionicons name="mic-outline" size={16} color="#999" />
+            <Text style={styles.switchText}>¿Prefieres grabar? Hazlo aquí</Text>
+          </TouchableOpacity>
+
+          <View style={styles.registryContainer}>
+            <BirdRegistry birds={identifiedBirds} />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  gradient: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fffaf0",
+  },
+  scrollContent: {
+    paddingBottom: 20,
+    backgroundColor: "transparent"
   },
   header: {
     alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    paddingTop: 20
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontSize: 28,
+    fontWeight: "900",
+    marginBottom: 8,
     color: "#d2691e",
   },
   subtitle: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 30,
+    fontSize: 16,
+    color: "#666",
+    fontWeight: '600',
   },
-  registryContainer: {
-    flex: 1,
-    width: '100%',
-  },
-  label: {
-    alignSelf: "flex-start",
-    marginBottom: 5,
-    fontSize: 14,
-    color: "#333",
-  },
-  input: {
-    width: "100%",
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 15,
-    backgroundColor: "#fff",
-  },
-  button: {
-    width: "100%",
-    backgroundColor: "#d2691e",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
+  selectorWrapper: {
+    paddingHorizontal: 20,
     marginTop: 10,
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  switchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginTop: 16,
+    marginHorizontal: 20,
   },
-  registerText: {
+  switchText: {
+    fontSize: 13,
+    color: '#999',
+    fontWeight: '500',
+  },
+  registryContainer: {
     marginTop: 20,
-    color: "#333",
+    flex: 1,
   },
 });
 
