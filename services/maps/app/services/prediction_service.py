@@ -158,6 +158,14 @@ def predict_distribution_in_zone(lat: float, lon: float, timestamp: datetime, gr
     Predice distribución de especies dentro de la zona poligonal detectada.
     Optimizado para procesamiento por lotes (vectorizado).
     """
+    import time
+    start_time = time.time()
+    
+    # Enforce minimum grid_size to avoid excessive computation
+    if grid_size < 0.001:
+        print(f"⚠️ grid_size {grid_size} too small, using minimum 0.001")
+        grid_size = 0.001
+    
     p = Point(lon, lat)
 
     # Identificar la zona

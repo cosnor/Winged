@@ -37,10 +37,39 @@ def distribution(request: DistributionRequest):
     
 @router.post("/distribution-zone")
 def distribution_zone(request: DistributionZoneRequest):
-    dt = datetime.fromisoformat(request.datetime.replace("Z", "+00:00"))
-    return predict_distribution_in_zone(
+    import time
+    start_time = time.time()
+    
+    print(f"📍 distribution-zone request received:")
+    print(f"   lat={request.lat}, lon={request.lon}")
+    print(f"   datetime={request.datetime}")
+    print(f"   grid_size={request.grid_size}")
+    
+    try:
+        # Handle datetime parsing with better error handling
+        if isinstance(request.datetime, str):
+            dt = datetime.fromisoformat(request.datetime.replace("Z", "+00:00"))
+        else:
+            dt = request.datetime
+            
+        print(f"   Parsed datetime: {dt}")
+        
+    except (ValueError, AttributeError) as e:
+        print(f"❌ Error parsing datetime: {e}")
+        print(f"   Received value: {request.datetime} (type: {type(request.datetime)})")
+        # Use current datetime as fallback
+        dt = datetime.now()
+        print(f"   Using current datetime as fallback: {dt}")
+    
+    print(f"⏳ Starting prediction...")
+    result = predict_distribution_in_zone(
         lat=request.lat,
         lon=request.lon,
         timestamp=dt,
         grid_size=request.grid_size
     )
+    
+    elapsed = time.time() - start_time
+    print(f"✅ Prediction completed in {elapsed:.2f} seconds")
+    
+    return result
