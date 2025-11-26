@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { BirdDetection } from "../hooks/useBirdAnalysis";
+import { useAvedex } from "./avedex-context";
 
 // Tipo de ave identificada para el registro
 export interface IdentifiedBird {
@@ -26,6 +27,7 @@ const BirdDetectionContext = createContext<BirdDetectionContextType>({
 
 export function BirdDetectionProvider({ children }: { children: ReactNode }) {
   const [identifiedBirds, setIdentifiedBirds] = useState<IdentifiedBird[]>([]);
+  const { addBird, hasBird } = useAvedex();
 
   const addDetections = (detections: BirdDetection[]) => {
     // Convertir detecciones a aves identificadas
@@ -41,6 +43,23 @@ export function BirdDetectionProvider({ children }: { children: ReactNode }) {
 
     // Agregar las nuevas aves al principio de la lista
     setIdentifiedBirds(prev => [...newBirds, ...prev]);
+
+    // Registrar en Avedex
+    detections.forEach(detection => {
+      // Usar el nombre de la especie como ID para evitar duplicados en Avedex
+      const birdId = detection.species_name;
+      
+      // Solo agregar si no existe ya en el Avedex
+      if (!hasBird(birdId)) {
+        addBird({
+          id: birdId,
+          commonName: detection.common_name || detection.species_name,
+          scientificName: detection.scientific_name || detection.species_name,
+          imageUrl: 'https://via.placeholder.com/150', // Imagen por defecto
+        });
+        console.log(`✅ Ave registrada en Avedex: ${detection.common_name || detection.species_name}`);
+      }
+    });
 
     console.log('✅ Agregadas', newBirds.length, 'nuevas detecciones al registro');
   };
